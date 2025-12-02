@@ -5,7 +5,7 @@ import { setToken, logout } from "@/features/auth/auth.slice";
 import { Mutex } from "async-mutex";
 
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE;
 
 const mutex = new Mutex();
 

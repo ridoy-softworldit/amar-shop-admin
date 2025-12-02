@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
     try {
       const res = await fetch(
         `${
-          process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api/v1"
+          process.env.NEXT_PUBLIC_API_BASE
         }/auth/login`,
         {
           method: "POST",

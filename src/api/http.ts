@@ -7,7 +7,7 @@ export const http = async <T = any>(
   body?: any
 ): Promise<T> => {
   const baseURL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+    process.env.NEXT_PUBLIC_API_URL;
 
   const response = await fetch(`${baseURL}${url}`, {
     method,

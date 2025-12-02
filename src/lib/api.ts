@@ -1,5 +1,5 @@
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:5000/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE;
 export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 function getToken(): string | null {
   if (typeof window === "undefined") return null;

@@ -52,9 +52,9 @@ export type AdminProductDTO = {
 
 //  Safe base URL (no runtime throw)
 const baseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_API_URL;
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_API_BASE;
 
 export const productsApi = createApi({
   reducerPath: "productsApi",

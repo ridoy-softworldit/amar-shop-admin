@@ -16,8 +16,11 @@ import {
   Phone,
   Calendar,
   Trash2,
+  FileText,
+  Printer,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { Toaster, toast } from "react-hot-toast";
 
 import {
@@ -281,7 +284,7 @@ export default function OrdersPage() {
     <>
       <Toaster position="top-right" />
 
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
@@ -379,7 +382,7 @@ export default function OrdersPage() {
                       </div>
 
                       {/* Amount + actions */}
-                      <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <div className="text-left sm:text-right">
                           <p className="text-xs text-gray-500 mb-1">
                             Grand Total
@@ -388,16 +391,34 @@ export default function OrdersPage() {
                             ৳{o.totals.grandTotal}
                           </p>
                         </div>
-                        <button
-                          onClick={() => {
-                            setSelected(o);
-                            setOpenDetails(true);
-                          }}
-                          className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 lg:py-3 rounded-xl bg-[#167389] text-white font-semibold hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition text-sm"
-                        >
-                          <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                          <span className="hidden sm:inline">Details</span>
-                        </button>
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/orders/${o._id}/invoice`}
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl bg-blue-50 text-blue-700 font-semibold hover:bg-blue-100 border border-blue-200 transition text-xs sm:text-sm"
+                            title="Invoice"
+                          >
+                            <span>Invoice</span>
+                            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          </Link>
+                          <Link
+                            href={`/orders/${o._id}/invoice?print=true`}
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-xl bg-green-50 text-green-700 font-semibold hover:bg-green-100 border border-green-200 transition text-xs sm:text-sm"
+                            title="Print"
+                          >
+                            <span>Print</span>
+                            <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setSelected(o);
+                              setOpenDetails(true);
+                            }}
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-[#167389] text-white font-semibold hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition text-xs sm:text-sm"
+                          >
+                            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span> Order Details</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 

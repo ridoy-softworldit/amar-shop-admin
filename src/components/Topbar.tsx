@@ -17,6 +17,8 @@ import {
   X,
   Image as ImageIcon,
   Truck,
+  Layers,
+  PackageSearch,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,11 +27,13 @@ import { useState } from "react";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/orders", label: "Orders", icon: ClipboardList },
-  { href: "/banners", label: "Banners", icon: ImageIcon },
-  { href: "/delivery-settings", label: "Delivery", icon: Truck },
+  { href: "/products", label: "All Products", icon: Package },
+  { href: "/inventory", label: "Stock Management", icon: PackageSearch },
+  { href: "/categories", label: "Categories", icon: FolderTree },
+  { href: "/subcategories", label: "Subcategories", icon: Layers },
+  { href: "/banners", label: "Home Banners", icon: ImageIcon },
+  { href: "/delivery-settings", label: "Delivery Charge", icon: Truck },
 ];
 
 export default function Topbar() {
@@ -181,7 +185,7 @@ export default function Topbar() {
             )}
           </div>
 
-          {/* Desktop Hotline */}
+          {/* Desktop Hotline & Logout */}
           <div className="hidden lg:flex items-center gap-2">
             <a
               title="Call us"
@@ -191,6 +195,15 @@ export default function Topbar() {
               <Phone className="w-4 h-4" />
               <span className="text-sm">{hotline}</span>
             </a>
+            {token && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border-2 border-red-200 text-red-600 font-medium rounded-xl hover:bg-red-100 transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">Logout</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}

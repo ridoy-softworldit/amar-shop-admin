@@ -17,11 +17,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarContext.Provider value={{ isCollapsed, setIsCollapsed }}>
-      {!isAuthRoute && <Sidebar />}
-      <div className={!isAuthRoute ? (isCollapsed ? "lg:pl-20" : "lg:pl-64") : ""}>
-        {!isAuthRoute && <Topbar />}
+      {!isAuthRoute && <div className="print:hidden"><Sidebar /></div>}
+      <div className={!isAuthRoute ? (isCollapsed ? "lg:pl-20 print:pl-0" : "lg:pl-64 print:pl-0") : ""}>
+        {!isAuthRoute && <div className="print:hidden"><Topbar /></div>}
         {children}
-        {!isAuthRoute && <Footer />}
+        {!isAuthRoute && <div className="print:hidden"><Footer /></div>}
       </div>
     </SidebarContext.Provider>
   );

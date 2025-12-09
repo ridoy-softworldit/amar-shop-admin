@@ -1,6 +1,6 @@
 const API =
   process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_API_URL;
+  process.env.NEXT_PUBLIC_API_BASE;
 
 function authFetch(input: string, init: RequestInit = {}) {
   const token =

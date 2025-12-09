@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
+  PackageSearch,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,12 +23,13 @@ import { usePathname, useRouter } from "next/navigation";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/products", label: "Products", icon: Package },
+  { href: "/orders", label: "Orders", icon: ClipboardList },
+  { href: "/products", label: "All Products", icon: Package },
+  { href: "/inventory", label: "Stock Management", icon: PackageSearch },
   { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/subcategories", label: "Subcategories", icon: Layers },
-  { href: "/orders", label: "Orders", icon: ClipboardList },
-  { href: "/banners", label: "Banners", icon: ImageIcon },
-  { href: "/delivery-settings", label: "Delivery", icon: Truck },
+  { href: "/banners", label: "Home Banners", icon: ImageIcon },
+  { href: "/delivery-settings", label: "Delivery Charge", icon: Truck },
 ];
 
 export default function Sidebar() {

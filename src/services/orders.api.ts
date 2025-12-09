@@ -70,3 +70,5 @@ export const {
   useUpdateOrderStatusMutation,
   useDeleteOrderMutation,
 } = ordersApi;
+
+export const useGetOrderByIdQuery = ordersApi.endpoints.getOrder.useQuery;

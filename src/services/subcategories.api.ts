@@ -3,7 +3,7 @@ import type { Subcategory, CreateSubcategoryDTO } from "@/types/category";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE ||
-  process.env.NEXT_PUBLIC_API_URL;
+  process.env.NEXT_PUBLIC_API_BASE;
 
 export const baseQuery = fetchBaseQuery({
   baseUrl: API_BASE,

@@ -14,6 +14,7 @@ import {
   Truck,
   ChevronLeft,
   ChevronRight,
+  Layers,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -23,6 +24,7 @@ const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/products", label: "Products", icon: Package },
   { href: "/categories", label: "Categories", icon: FolderTree },
+  { href: "/subcategories", label: "Subcategories", icon: Layers },
   { href: "/orders", label: "Orders", icon: ClipboardList },
   { href: "/banners", label: "Banners", icon: ImageIcon },
   { href: "/delivery-settings", label: "Delivery", icon: Truck },

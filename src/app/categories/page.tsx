@@ -8,9 +8,11 @@ import {
   Trash2,
   Search,
   FolderHeart,
-  AlertCircle,
   Loader2,
   Image as ImageIcon,
+  ChevronDown,
+  ChevronRight,
+  Layers,
 } from "lucide-react";
 import Image from "next/image";
 import { toast, Toaster } from "react-hot-toast";
@@ -20,23 +22,20 @@ import {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
 } from "@/services/categories.api";
+import {
+  useListSubcategoriesQuery,
+  useCreateSubcategoryMutation,
+  useUpdateSubcategoryMutation,
+  useDeleteSubcategoryMutation,
+} from "@/services/subcategories.api";
 import type {
-  Category as AdminCategory,
+  Category,
   CreateCategoryDTO,
+  Subcategory,
+  CreateSubcategoryDTO,
 } from "@/types/category";
 import { isActive } from "@/types/category";
-import UploadImage, { UploadValue } from "@/components/UploadImage";
-
-
-/** ---------- Runtime helpers: handle name/title mixed shapes ---------- */
-type AnyCategory = AdminCategory & { title?: string }; // API কিছু ক্ষেত্রে title দিচ্ছে
-const getName = (c: AnyCategory) => (c.name ?? c.title ?? "").trim();
-const getSlug = (c: AnyCategory) => (c.slug ?? "").trim();
-const getDesc = (c: AnyCategory) => (c.description ?? "").trim();
-
-function safeLower(s?: string) {
-  return (s ?? "").toLowerCase();
-}
+import UploadBannerImages, { BannerImage } from "@/components/UploadBannerImages";
 
 function ConfirmDialog({
   open,
@@ -61,23 +60,12 @@ function ConfirmDialog({
           <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
           {subtitle && <p className="text-sm text-gray-600 mt-1">{subtitle}</p>}
         </div>
-        <div className="flex gap-3 p-6 pt-0 flex-col sm:flex-row">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition"
-          >
+        <div className="flex gap-3 p-6 pt-0">
+          <button onClick={onCancel} className="flex-1 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition">
             Cancel
           </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex-1 px-5 py-2.5 rounded-xl bg-pink-600 text-white font-semibold hover:bg-pink-700 disabled:opacity-50 inline-flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4" />
-            )}
+          <button onClick={onConfirm} disabled={loading} className="flex-1 px-5 py-2.5 rounded-xl bg-pink-600 text-white font-semibold hover:bg-pink-700 disabled:opacity-50 inline-flex items-center justify-center gap-2">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             Delete
           </button>
         </div>
@@ -88,107 +76,131 @@ function ConfirmDialog({
 
 export default function CategoriesPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editing, setEditing] = useState<AnyCategory | null>(null);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [modalType, setModalType] = useState<"category" | "subcategory" | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "category" | "subcategory"; id: string } | null>(null);
+  
+  const [categoryForm, setCategoryForm] = useState({
     name: "",
     slug: "",
-    image: "",
+    title: "",
     description: "",
     isActive: true,
   });
+  const [subcategoryForm, setSubcategoryForm] = useState({
+    name: "",
+    slug: "",
+    categoryId: "",
+    description: "",
+    isActive: true,
+  });
+  const [bannerImages, setBannerImages] = useState<BannerImage[]>([]);
 
-  const { data, isLoading, isFetching, error } = useListCategoriesQuery();
-  const [createCategory, { isLoading: creating }] = useCreateCategoryMutation();
-  const [updateCategory, { isLoading: updating }] = useUpdateCategoryMutation();
-  const [deleteCategory, { isLoading: deleting }] = useDeleteCategoryMutation();
+  const { data: categoriesData, isLoading: loadingCats } = useListCategoriesQuery();
+  const { data: subcategoriesData, isLoading: loadingSubs } = useListSubcategoriesQuery();
+  const [createCategory, { isLoading: creatingCat }] = useCreateCategoryMutation();
+  const [updateCategory, { isLoading: updatingCat }] = useUpdateCategoryMutation();
+  const [deleteCategory, { isLoading: deletingCat }] = useDeleteCategoryMutation();
+  const [createSubcategory, { isLoading: creatingSub }] = useCreateSubcategoryMutation();
+  const [updateSubcategory, { isLoading: updatingSub }] = useUpdateSubcategoryMutation();
+  const [deleteSubcategory, { isLoading: deletingSub }] = useDeleteSubcategoryMutation();
 
-  const categories = useMemo<AnyCategory[]>(
-    () => ((data as any)?.data ?? []) as AnyCategory[],
-    [data]
-  );
+  const categories = useMemo<Category[]>(() => ((categoriesData as any)?.data ?? []), [categoriesData]);
+  const subcategories = useMemo<Subcategory[]>(() => ((subcategoriesData as any)?.data ?? []), [subcategoriesData]);
 
   const filtered = useMemo(() => {
-    const q = safeLower(searchQuery);
-    return categories.filter((c) => {
-      const nameLower = safeLower(getName(c));
-      const slugLower = safeLower(getSlug(c));
-      const descLower = safeLower(getDesc(c));
-      return (
-        nameLower.includes(q) ||
-        slugLower.includes(q) ||
-        (descLower.includes(q) ?? false)
-      );
-    });
+    const q = searchQuery.toLowerCase();
+    return categories.filter((c) =>
+      (c.name || "").toLowerCase().includes(q) ||
+      (c.slug || "").toLowerCase().includes(q)
+    );
   }, [categories, searchQuery]);
 
-  const openModal = (cat?: AnyCategory) => {
+  const getSubcategoriesForCategory = (categoryId: string) => {
+    return subcategories.filter((s) => {
+      const subCatId = typeof s.categoryId === 'string' 
+        ? s.categoryId 
+        : (s.categoryId as any)?._id;
+      return subCatId === categoryId;
+    });
+  };
+
+  const toggleCategory = (id: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const openCategoryModal = (cat?: Category) => {
     if (cat) {
-      const n = getName(cat);
-      setEditing(cat);
-      setFormData({
-        name: n,
-        slug:
-          getSlug(cat) ||
-          n
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)/g, ""),
-        image: cat.image || "",
-        description: getDesc(cat),
+      setEditingCategory(cat);
+      setCategoryForm({
+        name: cat.name,
+        slug: cat.slug,
+        title: cat.title || "",
+        description: cat.description || "",
         isActive: isActive(cat),
       });
+      setBannerImages((cat.images || []).map((url) => ({ url, publicId: "" })));
     } else {
-      setEditing(null);
-      setFormData({
-        name: "",
-        slug: "",
-        image: "",
-        description: "",
-        isActive: true,
-      });
+      setEditingCategory(null);
+      setCategoryForm({ name: "", slug: "", title: "", description: "", isActive: true });
+      setBannerImages([]);
     }
-    setIsModalOpen(true);
+    setModalType("category");
+  };
+
+  const openSubcategoryModal = (categoryId: string, sub?: Subcategory) => {
+    if (sub) {
+      setEditingSubcategory(sub);
+      const subCatId = typeof sub.categoryId === 'string' 
+        ? sub.categoryId 
+        : (sub.categoryId as any)?._id;
+      setSubcategoryForm({
+        name: sub.name,
+        slug: sub.slug,
+        categoryId: subCatId,
+        description: sub.description || "",
+        isActive: isActive(sub),
+      });
+      setBannerImages((sub.images || []).map((url) => ({ url, publicId: "" })));
+    } else {
+      setEditingSubcategory(null);
+      setSubcategoryForm({ name: "", slug: "", categoryId, description: "", isActive: true });
+      setBannerImages([]);
+    }
+    setModalType("subcategory");
   };
 
   const closeModal = () => {
-    setIsModalOpen(false);
-    setEditing(null);
+    setModalType(null);
+    setEditingCategory(null);
+    setEditingSubcategory(null);
   };
 
-  const handleNameChange = (name: string) => {
-    const safe = name ?? "";
-    setFormData((s) => ({
-      ...s,
-      name: safe,
-      slug: safe
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, ""),
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload: CreateCategoryDTO = {
-      name: formData.name, 
-      slug: formData.slug,
-      image: formData.image || undefined,
-      description: formData.description || undefined,
-      status: formData.isActive ? "ACTIVE" : "HIDDEN",
+      name: categoryForm.name,
+      slug: categoryForm.slug,
+      title: categoryForm.title || undefined,
+      images: bannerImages.map((img) => img.url),
+      description: categoryForm.description || undefined,
+      status: categoryForm.isActive ? "ACTIVE" : "HIDDEN",
     };
 
     try {
-      if (editing) {
-        await updateCategory({
-          id: (editing as any)._id,
-          body: payload,
-        }).unwrap();
-        toast.success("Category updated successfully");
+      if (editingCategory) {
+        await updateCategory({ id: editingCategory._id, body: payload }).unwrap();
+        toast.success("Category updated");
       } else {
         await createCategory(payload).unwrap();
-        toast.success("Category created successfully");
+        toast.success("Category created");
       }
       closeModal();
     } catch {
@@ -196,283 +208,359 @@ export default function CategoriesPage() {
     }
   };
 
-  const confirmDelete = async () => {
-    if (!confirmId) return;
+  const handleSubcategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload: CreateSubcategoryDTO = {
+      name: subcategoryForm.name,
+      slug: subcategoryForm.slug,
+      categoryId: subcategoryForm.categoryId,
+      images: bannerImages.map((img) => img.url),
+      description: subcategoryForm.description || undefined,
+      status: subcategoryForm.isActive ? "ACTIVE" : "HIDDEN",
+    };
+
     try {
-      await deleteCategory(confirmId).unwrap();
-      toast.success("Category deleted");
+      if (editingSubcategory) {
+        await updateSubcategory({ id: editingSubcategory._id, body: payload }).unwrap();
+        toast.success("Subcategory updated");
+      } else {
+        await createSubcategory(payload).unwrap();
+        toast.success("Subcategory created");
+      }
+      closeModal();
+    } catch {
+      toast.error("Operation failed");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      if (confirmDelete.type === "category") {
+        await deleteCategory(confirmDelete.id).unwrap();
+        toast.success("Category deleted");
+      } else {
+        await deleteSubcategory(confirmDelete.id).unwrap();
+        toast.success("Subcategory deleted");
+      }
     } catch {
       toast.error("Delete failed");
     } finally {
-      setConfirmId(null);
+      setConfirmDelete(null);
     }
   };
 
   const isValidImageUrl = (url?: string) => {
     if (!url) return false;
     try {
-      const u = new URL(
-        url,
-        typeof window !== "undefined"
-          ? window.location.origin
-          : "http://localhost"
-      );
-      return ["http:", "https:"].includes(u.protocol) || url.startsWith("/");
+      new URL(url);
+      return true;
     } catch {
       return false;
     }
   };
-
-  const Skeleton = () => (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden animate-pulse">
-      <div className="h-40 bg-pink-100/60" />
-      <div className="p-5 space-y-2">
-        <div className="h-4 bg-pink-100 rounded w-3/4" />
-        <div className="h-3 bg-pink-100 rounded w-1/3" />
-      </div>
-    </div>
-  );
 
   return (
     <>
       <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8 text-center sm:text-left">
-            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600  to-cyan-600 flex justify-center sm:justify-start items-center gap-3 flex-wrap">
-              <FolderHeart className="w-8 sm:w-10 h-8 sm:h-10 text-pink-500" />
-              Category Management
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-600 flex items-center gap-3">
+              <FolderHeart className="w-10 h-10 text-pink-500" />
+              Categories & Subcategories
             </h1>
-            <p className="text-pink-700/70 font-medium mt-2 text-sm sm:text-base">
-              Manage all beauty & cosmetics categories seamlessly
-            </p>
+            <p className="text-pink-700/70 font-medium mt-2">Manage nested category structure</p>
           </div>
 
-          {/* Search + Add */}
-          <div className="bg-white rounded-2xl border border-pink-100 p-4 sm:p-6 mb-6 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center">
-            <div className="relative flex-1 w-full max-w-xl">
+          <div className="bg-white rounded-2xl border border-pink-100 p-4 sm:p-6 mb-6 shadow-sm flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+            <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-pink-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search categories..."
-                className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition text-sm sm:text-base"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
               />
             </div>
             <button
-              onClick={() => openModal()}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-600  to-cyan-600 text-white font-semibold shadowhover:from-cyan-300 hover:to-cyan-700 transition text-sm sm:text-base"
+              onClick={() => openCategoryModal()}
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-600 text-white font-semibold shadow hover:from-cyan-300 hover:to-cyan-700 transition whitespace-nowrap"
             >
-              <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> Add Category
+              <Plus className="w-5 h-5" /> <span className="hidden sm:inline">Add Category</span><span className="sm:hidden">Add</span>
             </button>
           </div>
 
-          {/* Category Grid */}
-          {isLoading || isFetching ? (
-            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} />
+          {loadingCats || loadingSubs ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl p-6 animate-pulse">
+                  <div className="h-6 bg-pink-100 rounded w-1/3 mb-4" />
+                  <div className="h-4 bg-pink-100 rounded w-1/2" />
+                </div>
               ))}
             </div>
-          ) : error ? (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 justify-center">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-700">Failed to load categories.</p>
-            </div>
-          ) : filtered.length ? (
-            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+          ) : (
+            <div className="space-y-4">
               {filtered.map((cat) => {
-                const displayName = getName(cat);
+                const subs = getSubcategoriesForCategory(cat._id);
+                const isExpanded = expandedCategories.has(cat._id);
+                const firstImage = cat.images?.[0];
+
                 return (
-                  <div
-                    key={(cat as any)._id}
-                    className="bg-white rounded-2xl border border-pink-100 shadow-sm hover:shadow-md transition overflow-hidden group flex flex-col"
-                  >
-                    <div className="relative h-40 bg-gradient-to-br from-pink-100 to-rose-100">
-                      {isValidImageUrl(cat.image) ? (
-                        <Image
-                          src={cat.image!}
-                          alt={displayName || "Category"}
-                          width={600}
-                          height={400}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <ImageIcon className="w-16 h-16 text-pink-200" />
+                  <div key={cat._id} className="bg-white rounded-2xl border border-pink-100 shadow-sm overflow-hidden">
+                    <div className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <button
+                          onClick={() => toggleCategory(cat._id)}
+                          className="p-2 hover:bg-pink-50 rounded-lg transition self-start"
+                        >
+                          {isExpanded ? <ChevronDown className="w-6 h-6 sm:w-5 sm:h-5" /> : <ChevronRight className="w-6 h-6 sm:w-5 sm:h-5" />}
+                        </button>
+
+                        <div className="flex-1">
+                          <div className="flex flex-col lg:flex-row items-start justify-between gap-4 w-full">
+                            <div className="flex-1">
+                              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">{cat.name}</h3>
+                              <p className="text-sm text-gray-600 mb-2">{cat.slug}</p>
+                              {cat.description && <p className="text-sm text-gray-500">{cat.description}</p>}
+                              <div className="flex gap-2 mt-3">
+                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${cat.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                                  {cat.status}
+                                </span>
+                                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+                                  {subs.length} subcategories
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 items-start">
+                              {cat.images && cat.images.length > 0 && (
+                                <div className="flex gap-1 flex-wrap">
+                                  {cat.images.slice(0, 3).map((img, idx) => (
+                                    <div key={idx} className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 border-pink-200">
+                                      {isValidImageUrl(img) ? (
+                                        <Image src={img} alt={`${cat.name} ${idx + 1}`} fill className="object-cover" sizes="64px" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-pink-50">
+                                          <ImageIcon className="w-6 h-6 text-pink-300" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <button onClick={() => openCategoryModal(cat)} className="px-3 sm:px-4 py-2 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-100 transition">
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => setConfirmDelete({ type: "category", id: cat._id })} className="px-3 sm:px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="mt-6 ml-0 sm:ml-9 space-y-3">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                            <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                              <Layers className="w-4 h-4" />
+                              Subcategories
+                            </h4>
+                            <button
+                              onClick={() => openSubcategoryModal(cat._id)}
+                              className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition text-sm font-medium w-full sm:w-auto"
+                            >
+                              <Plus className="w-4 h-4" /> Add Subcategory
+                            </button>
+                          </div>
+
+                          {subs.length === 0 ? (
+                            <p className="text-sm text-gray-400 italic py-4">No subcategories yet</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {subs.map((sub) => (
+                                <div key={sub._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                  <div className="flex-1">
+                                    <h5 className="font-semibold text-gray-900">{sub.name}</h5>
+                                    <p className="text-xs text-gray-500">{sub.slug}</p>
+                                    {sub.description && <p className="text-sm text-gray-600 mt-1">{sub.description}</p>}
+                                    <span className={`inline-block mt-2 px-2 py-0.5 text-xs font-bold rounded-full ${sub.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                                      {sub.status}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+                                    {sub.images && sub.images.length > 0 && (
+                                      <div className="flex gap-1 flex-wrap">
+                                        {sub.images.slice(0, 3).map((img, idx) => (
+                                          <div key={idx} className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border-2 border-cyan-200">
+                                            {isValidImageUrl(img) ? (
+                                              <Image src={img} alt={`${sub.name} ${idx + 1}`} fill className="object-cover" sizes="48px" />
+                                            ) : (
+                                              <div className="w-full h-full flex items-center justify-center bg-cyan-50">
+                                                <ImageIcon className="w-4 h-4 text-cyan-300" />
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <button onClick={() => openSubcategoryModal(cat._id, sub)} className="px-3 py-2 rounded-lg bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition">
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button onClick={() => setConfirmDelete({ type: "subcategory", id: sub._id })} className="px-3 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
-                      <div className="absolute top-3 right-3">
-                        <span
-                          className={`px-3 py-1 text-xs font-bold rounded-full ${
-                            (cat as any).status === "ACTIVE"
-                              ? "bg-pink-600 text-white"
-                              : "bg-gray-400 text-white"
-                          }`}
-                        >
-                          {(cat as any).status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-5 flex flex-col flex-grow">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">
-                        {displayName || "Untitled"}
-                      </h3>
-                      <p className="text-sm text-pink-700/70 font-medium mb-3 line-clamp-2">
-                        {getDesc(cat)}
-                      </p>
-                      <div className="mt-auto flex gap-2 flex-wrap">
-                        <button
-                          onClick={() => openModal(cat)}
-                          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-pink-50 text-pink-700 border border-pink-100 hover:from-cyan-300 hover:to-cyan-700 transition text-sm"
-                        >
-                          <Edit2 className="w-4 h-4" /> Edit
-                        </button>
-                        <button
-                          onClick={() => setConfirmId((cat as any)._id)}
-                          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 text-red-700 border border-red-100 hover:bg-red-100 transition text-sm"
-                        >
-                          <Trash2 className="w-4 h-4" /> Delete
-                        </button>
-                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-pink-100 p-12 text-center shadow-sm">
-              <FolderHeart className="w-16 h-16 text-pink-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
-                No categories yet
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Create your first category
-              </p>
-              <button
-                onClick={() => openModal()}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white font-semibold shadow hover:from-cyan-300 hover:to-cyan-700 transition"
-              >
-                <Plus className="w-5 h-5" /> Add Category
-              </button>
-            </div>
           )}
         </div>
       </div>
 
-      {/* Delete Confirm */}
       <ConfirmDialog
-        open={!!confirmId}
-        title="Delete this category?"
+        open={!!confirmDelete}
+        title={`Delete this ${confirmDelete?.type}?`}
         subtitle="This action cannot be undone."
-        onCancel={() => setConfirmId(null)}
-        onConfirm={confirmDelete}
-        loading={deleting}
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        loading={deletingCat || deletingSub}
       />
 
-      {/* Add / Edit Modal */}
-      {isModalOpen && (
+      {modalType === "category" && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-white rounded-3xl border border-pink-100 shadow-2xl overflow-hidden">
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold text-pink-600 mb-2">
-                {editing ? "Edit Category" : "Add New Category"}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleCategorySubmit} className="p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-pink-600">{editingCategory ? "Edit Category" : "Add Category"}</h2>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Name
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Name *</label>
                   <input
                     type="text"
-                    value={formData.name}
-                    onChange={(e) => handleNameChange(e.target.value)}
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") })}
                     className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Slug
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Slug *</label>
                   <input
                     type="text"
-                    value={formData.slug}
-                    onChange={(e) =>
-                      setFormData((s) => ({ ...s, slug: e.target.value }))
-                    }
+                    value={categoryForm.slug}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
                     className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
                     required
                   />
                 </div>
               </div>
-
-              <UploadImage
-                label="Category Image"
-                value={
-                  formData.image ? { url: formData.image, publicId: "" } : null
-                }
-                onChange={(v: UploadValue) =>
-                  setFormData((s) => ({ ...s, image: v?.url || "" }))
-                }
-                disabled={creating || updating}
-              />
-
               <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Description
-                </label>
+                <label className="text-sm font-medium text-gray-700">Title</label>
+                <input
+                  type="text"
+                  value={categoryForm.title}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, title: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
+                />
+              </div>
+              <UploadBannerImages value={bannerImages} onChange={setBannerImages} disabled={creatingCat || updatingCat} />
+              <div>
+                <label className="text-sm font-medium text-gray-700">Description</label>
                 <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((s) => ({ ...s, description: e.target.value }))
-                  }
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition resize-none"
                   rows={3}
-                  placeholder="Short description..."
                 />
               </div>
-
               <div className="flex items-center gap-2">
                 <input
-                  id="active"
+                  id="catActive"
                   type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) =>
-                    setFormData((s) => ({ ...s, isActive: e.target.checked }))
-                  }
+                  checked={categoryForm.isActive}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, isActive: e.target.checked })}
                   className="w-4 h-4 text-pink-600 border-pink-200 rounded"
                 />
-                <label
-                  htmlFor="active"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Active
-                </label>
+                <label htmlFor="catActive" className="text-sm font-medium text-gray-700">Active</label>
               </div>
-
               <div className="flex justify-end gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition"
-                >
+                <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={creating || updating}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white hover:from-cyan-300 hover:to-cyan-700 font-semibold shadow hover:shadow-lg transition disabled:opacity-50"
-                >
-                  {editing
-                    ? updating
-                      ? "Updating..."
-                      : "Update"
-                    : creating
-                    ? "Creating..."
-                    : "Create"}
+                <button type="submit" disabled={creatingCat || updatingCat} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold shadow hover:shadow-lg transition disabled:opacity-50">
+                  {editingCategory ? (updatingCat ? "Updating..." : "Update") : (creatingCat ? "Creating..." : "Create")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {modalType === "subcategory" && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-3xl border border-pink-100 shadow-2xl overflow-hidden">
+            <form onSubmit={handleSubcategorySubmit} className="p-6 space-y-4">
+              <h2 className="text-xl font-semibold text-cyan-600">{editingSubcategory ? "Edit Subcategory" : "Add Subcategory"}</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Name *</label>
+                  <input
+                    type="text"
+                    value={subcategoryForm.name}
+                    onChange={(e) => setSubcategoryForm({ ...subcategoryForm, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") })}
+                    className="w-full px-4 py-2 rounded-lg border-2 border-cyan-100 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Slug *</label>
+                  <input
+                    type="text"
+                    value={subcategoryForm.slug}
+                    onChange={(e) => setSubcategoryForm({ ...subcategoryForm, slug: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border-2 border-cyan-100 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 transition"
+                    required
+                  />
+                </div>
+              </div>
+              <UploadBannerImages value={bannerImages} onChange={setBannerImages} disabled={creatingSub || updatingSub} />
+              <div>
+                <label className="text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  value={subcategoryForm.description}
+                  onChange={(e) => setSubcategoryForm({ ...subcategoryForm, description: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border-2 border-cyan-100 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 transition resize-none"
+                  rows={3}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="subActive"
+                  type="checkbox"
+                  checked={subcategoryForm.isActive}
+                  onChange={(e) => setSubcategoryForm({ ...subcategoryForm, isActive: e.target.checked })}
+                  className="w-4 h-4 text-cyan-600 border-cyan-200 rounded"
+                />
+                <label htmlFor="subActive" className="text-sm font-medium text-gray-700">Active</label>
+              </div>
+              <div className="flex justify-end gap-3 pt-3">
+                <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition">
+                  Cancel
+                </button>
+                <button type="submit" disabled={creatingSub || updatingSub} className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold shadow hover:shadow-lg transition disabled:opacity-50">
+                  {editingSubcategory ? (updatingSub ? "Updating..." : "Update") : (creatingSub ? "Creating..." : "Create")}
                 </button>
               </div>
             </form>

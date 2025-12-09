@@ -3,6 +3,7 @@ import { authReducer } from "@/features/auth/auth.slice";
 import { authApi } from "@/services/auth.api";
 import { productsApi } from "@/services/products.api";
 import { categoriesApi } from "@/services/categories.api";
+import { subcategoriesApi } from "@/services/subcategories.api";
 import { ordersApi } from "@/services/orders.api";
 import { bannersApi } from "@/services/banners.api";
 import { inventoryApi } from "@/services/inventory.api";
@@ -14,6 +15,7 @@ export const store = configureStore({
     [authApi.reducerPath]: authApi.reducer,
     [productsApi.reducerPath]: productsApi.reducer,
     [categoriesApi.reducerPath]: categoriesApi.reducer,
+    [subcategoriesApi.reducerPath]: subcategoriesApi.reducer,
     [ordersApi.reducerPath]: ordersApi.reducer,
     [bannersApi.reducerPath]: bannersApi.reducer,
     [inventoryApi.reducerPath]: inventoryApi.reducer,
@@ -24,6 +26,7 @@ export const store = configureStore({
       authApi.middleware,
       productsApi.middleware,
       categoriesApi.middleware,
+      subcategoriesApi.middleware,
       ordersApi.middleware,
       bannersApi.middleware,
       inventoryApi.middleware,

@@ -6,6 +6,7 @@ export interface Category {
   title?: string;
   slug: string;
   image?: string;
+  images?: string[];
   description?: string;
   status: CategoryStatus;
   createdAt?: string;
@@ -15,7 +16,30 @@ export interface Category {
 export type CreateCategoryDTO = {
   name: string;
   slug: string;
+  title?: string;
   image?: string;
+  images?: string[];
+  description?: string;
+  status?: CategoryStatus;
+};
+
+export interface Subcategory {
+  _id: string;
+  name: string;
+  slug: string;
+  categoryId: string;
+  images?: string[];
+  description?: string;
+  status: CategoryStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type CreateSubcategoryDTO = {
+  name: string;
+  slug: string;
+  categoryId: string;
+  images?: string[];
   description?: string;
   status?: CategoryStatus;
 };

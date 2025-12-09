@@ -26,6 +26,7 @@ export type AdminProductDTO = {
   featured?: boolean;
   status?: "ACTIVE" | "DRAFT" | "HIDDEN";
   categorySlug?: string;
+  subcategorySlug?: string;
   brand?: string;
   description?: string;
   tagSlugs?: string[];

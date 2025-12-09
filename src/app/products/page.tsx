@@ -28,6 +28,7 @@ import {
   useDeleteProductMutation,
 } from "@/services/products.api";
 import { useListCategoriesQuery } from "@/services/categories.api";
+import { useListSubcategoriesQuery } from "@/services/subcategories.api";
 
 import UploadImages, { type UploadItem } from "@/components/UploadImages";
 
@@ -44,8 +45,8 @@ type Product = {
   isDiscounted?: boolean;
   status: "ACTIVE" | "DRAFT" | "HIDDEN";
   categorySlug?: string;
+  subcategorySlug?: string;
   tagSlugs?: string[];
-  // optional extra fields
   brand?: string;
   description?: string;
 };
@@ -141,6 +142,7 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState(
     searchParams.get("category") || ""
   );
+  const [subcategoryFilter, setSubcategoryFilter] = useState("");
 
   // modal + edit state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -152,13 +154,14 @@ export default function ProductsPage() {
     title: "",
     slug: "",
     price: 0,
-    discountPrice: 0, // UI-only; backend-এ আমরা price/compareAtPrice হিসেব করবো
+    discountPrice: 0,
     stock: 0,
     categorySlug: "",
+    subcategorySlug: "",
     brand: "",
     description: "",
     status: "ACTIVE" as "ACTIVE" | "DRAFT" | "HIDDEN",
-    tags: "", // CSV → tagSlugs[]
+    tags: "",
   });
   const [images, setImages] = useState<UploadItem[]>([]);
 
@@ -189,6 +192,32 @@ export default function ProductsPage() {
     name?: string;
   }>;
 
+  const selectedCategoryId = categories.find((c) => c.slug === form.categorySlug)?._id;
+  const filterCategoryId = categories.find((c) => c.slug === categoryFilter)?._id;
+  const { data: subcategoriesData } = useListSubcategoriesQuery(
+    selectedCategoryId ? { categoryId: selectedCategoryId } : undefined
+  );
+  const { data: filterSubcategoriesData } = useListSubcategoriesQuery(
+    filterCategoryId ? { categoryId: filterCategoryId } : undefined
+  );
+
+  const subcategories = (subcategoriesData?.data ?? subcategoriesData ?? []) as Array<{
+    _id: string;
+    slug: string;
+    name: string;
+  }>;
+
+  const filterSubcategories = (filterSubcategoriesData?.data ?? filterSubcategoriesData ?? []) as Array<{
+    _id: string;
+    slug: string;
+    name: string;
+  }>;
+
+  // Client-side filter by subcategory
+  const filteredProducts = subcategoryFilter
+    ? products.filter((p) => p.subcategorySlug === subcategoryFilter)
+    : products;
+
   // Build DTOs (backend schema aligned)
   const buildCreateDTO = (f: typeof form) => {
     const hasDiscount = f.discountPrice > 0 && f.discountPrice < f.price;
@@ -207,6 +236,7 @@ export default function ProductsPage() {
       images: images.map((i) => i.url),
       status: f.status,
       categorySlug: f.categorySlug || undefined,
+      subcategorySlug: f.subcategorySlug || undefined,
       brand: f.brand || undefined,
       description: f.description || undefined,
       tagSlugs,
@@ -271,6 +301,7 @@ export default function ProductsPage() {
       discountPrice: 0,
       stock: 0,
       categorySlug: "",
+      subcategorySlug: "",
       brand: "",
       description: "",
       status: "ACTIVE",
@@ -294,6 +325,7 @@ export default function ProductsPage() {
       discountPrice: hasCompare ? priceNum : 0,
       stock: n(p.stock),
       categorySlug: p.categorySlug ?? "",
+      subcategorySlug: p.subcategorySlug ?? "",
       brand: p.brand ?? "",
       description: p.description ?? "",
       status: p.status,
@@ -366,16 +398,34 @@ export default function ProductsPage() {
                 />
               </div>
 
-              {/* Category filter (slug) */}
+              {/* Category filter */}
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setSubcategoryFilter("");
+                }}
                 className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition lg:w-64"
               >
                 <option value="">All Categories</option>
                 {categories.map((cat) => (
                   <option key={cat._id} value={cat.slug}>
                     {cat.title || cat.name || cat.slug}
+                  </option>
+                ))}
+              </select>
+
+              {/* Subcategory filter */}
+              <select
+                value={subcategoryFilter}
+                onChange={(e) => setSubcategoryFilter(e.target.value)}
+                disabled={!categoryFilter}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition lg:w-64 disabled:bg-gray-100"
+              >
+                <option value="">All Subcategories</option>
+                {filterSubcategories.map((sub) => (
+                  <option key={sub._id} value={sub.slug}>
+                    {sub.name}
                   </option>
                 ))}
               </select>
@@ -405,9 +455,9 @@ export default function ProductsPage() {
                 Failed to load products. Please try again.
               </p>
             </div>
-          ) : products.length > 0 ? (
+          ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              {products.map((p) => {
+              {filteredProducts.map((p) => {
                 const pct = discountPct(
                   n(p.price),
                   p.compareAtPrice != null ? n(p.compareAtPrice) : undefined
@@ -472,9 +522,17 @@ export default function ProductsPage() {
                         {p.title}
                       </h3>
 
-                      <div className="text-[11px] sm:text-xs text-gray-500 mb-1 flex items-center gap-1">
-                        <Store className="w-3.5 h-3.5" />
-                        Stock: {n(p.stock)}
+                      <div className="text-[11px] sm:text-xs text-gray-500 mb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          <Store className="w-3.5 h-3.5" />
+                          Stock: {n(p.stock)}
+                        </div>
+                        {p.brand && (
+                          <div className="text-[11px] sm:text-xs text-pink-600 font-medium flex items-center gap-1">
+                            <Tag className="w-3.5 h-3.5" />
+                            {p.brand}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-baseline gap-1 sm:gap-2 mb-2">
@@ -633,7 +691,7 @@ export default function ProductsPage() {
                     <select
                       value={form.categorySlug}
                       onChange={(e) =>
-                        setForm({ ...form, categorySlug: e.target.value })
+                        setForm({ ...form, categorySlug: e.target.value, subcategorySlug: "" })
                       }
                       required
                       className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
@@ -642,6 +700,26 @@ export default function ProductsPage() {
                       {categories.map((cat) => (
                         <option key={cat._id} value={cat.slug}>
                           {cat.title || cat.name || cat.slug}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                      Subcategory (Optional)
+                    </label>
+                    <select
+                      value={form.subcategorySlug}
+                      onChange={(e) =>
+                        setForm({ ...form, subcategorySlug: e.target.value })
+                      }
+                      disabled={!form.categorySlug}
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition disabled:bg-gray-100"
+                    >
+                      <option value="">Select Subcategory</option>
+                      {subcategories.map((sub) => (
+                        <option key={sub._id} value={sub.slug}>
+                          {sub.name}
                         </option>
                       ))}
                     </select>

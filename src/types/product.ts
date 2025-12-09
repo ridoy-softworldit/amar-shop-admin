@@ -8,6 +8,7 @@ export type Product = {
   isDiscounted?: boolean;
   stock?: number;
   categorySlug?: string;
+  subcategorySlug?: string;
   tagSlugs?: string[];
   status: "ACTIVE" | "DRAFT" | "HIDDEN";
   createdAt?: string;
@@ -37,6 +38,7 @@ export interface CreateProductDTO {
   isDiscounted?: boolean;
   status?: AdminProductStatus;
   categorySlug?: string;
+  subcategorySlug?: string;
   tagSlugs?: string[];
 }
 

@@ -514,11 +514,19 @@ export default function OrdersPage() {
                       </span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="text-gray-600">Address:</span>
-                      <span className="font-semibold text-gray-800">
+                      <span className="text-gray-600">Shipping Address: <span className="font-semibold text-gray-800">
                         {[(selected.customer as Record<string, string>).houseOrVillage, (selected.customer as Record<string, string>).roadOrPostOffice, (selected.customer as Record<string, string>).blockOrThana, (selected.customer as Record<string, string>).district].filter(Boolean).join(", ") || "N/A"}
-                      </span>
+                      </span></span>
+                      
                     </div>
+                    {(selected.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress && (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-600">Billing Address:  <span className="font-semibold text-gray-800">
+                          {[(selected.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.houseOrVillage, (selected.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.roadOrPostOffice, (selected.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.blockOrThana, (selected.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.district].filter(Boolean).join(", ") || "N/A"}
+                        </span></span>
+                        
+                      </div>
+                    )}
                   </div>
                 </div>
 

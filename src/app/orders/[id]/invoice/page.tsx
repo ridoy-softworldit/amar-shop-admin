@@ -110,10 +110,10 @@ export default function InvoicePage() {
             </div>
           </div>
 
-          {/* Customer & Status */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
+          {/* Customer & Billing Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <h3 className="text-sm font-bold text-gray-800 mb-2">Bill To:</h3>
+              <h3 className="text-sm font-bold text-gray-800 mb-2">Customer Info:</h3>
               <p className="text-sm text-gray-700">{order.customer.name}</p>
               <p className="text-sm text-gray-600">{order.customer.phone}</p>
               <p className="text-sm text-gray-600">
@@ -127,12 +127,29 @@ export default function InvoicePage() {
                   .join(", ") || "N/A"}
               </p>
             </div>
-            <div className="text-right">
-              <h3 className="text-sm font-bold text-gray-800 mb-2">Status:</h3>
-              <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-                {order.status}
-              </span>
+            <div>
+              <h3 className="text-sm font-bold text-gray-800 mb-2">Billing Info:</h3>
+              {(order.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress ? (
+                <p className="text-sm text-gray-600">
+                  {[
+                    (order.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.houseOrVillage,
+                    (order.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.roadOrPostOffice,
+                    (order.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.blockOrThana,
+                    (order.customer as Record<string, { houseOrVillage?: string; roadOrPostOffice?: string; blockOrThana?: string; district?: string }>).billingAddress.district,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "N/A"}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-600">Same as customer address</p>
+              )}
             </div>
+          </div>
+          <div className="mb-6 text-right">
+            <h3 className="text-sm font-bold text-gray-800 mb-2">Status:</h3>
+            <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+              {order.status}
+            </span>
           </div>
 
           {/* Items Table */}

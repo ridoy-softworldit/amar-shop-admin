@@ -19,6 +19,7 @@ import {
   Truck,
   Layers,
   PackageSearch,
+  Tag,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,6 +33,7 @@ const NAV = [
   { href: "/inventory", label: "Stock Management", icon: PackageSearch },
   { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/subcategories", label: "Subcategories", icon: Layers },
+  { href: "/brands", label: "Brands", icon: Tag },
   { href: "/banners", label: "Home Banners", icon: ImageIcon },
   { href: "/delivery-settings", label: "Delivery Charge", icon: Truck },
 ];

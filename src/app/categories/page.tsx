@@ -309,110 +309,125 @@ export default function CategoriesPage() {
                 const firstImage = cat.images?.[0];
 
                 return (
-                  <div key={cat._id} className="bg-white rounded-2xl border border-pink-100 shadow-sm overflow-hidden">
+                  <div key={cat._id} className="bg-white rounded-2xl border border-pink-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                     <div className="p-4 sm:p-6">
-                      <div className="flex flex-col sm:flex-row items-start gap-4">
-                        <button
-                          onClick={() => toggleCategory(cat._id)}
-                          className="p-2 hover:bg-pink-50 rounded-lg transition self-start"
-                        >
-                          {isExpanded ? <ChevronDown className="w-6 h-6 sm:w-5 sm:h-5" /> : <ChevronRight className="w-6 h-6 sm:w-5 sm:h-5" />}
-                        </button>
-
-                        <div className="flex-1">
-                          <div className="flex flex-col lg:flex-row items-start justify-between gap-4 w-full">
-                            <div className="flex-1">
-                              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">{cat.name}</h3>
-                              <p className="text-sm text-gray-600 mb-2">{cat.slug}</p>
-                              {cat.description && <p className="text-sm text-gray-500">{cat.description}</p>}
-                              <div className="flex gap-2 mt-3">
-                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${cat.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
-                                  {cat.status}
-                                </span>
-                                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-                                  {subs.length} subcategories
-                                </span>
-                              </div>
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <h3 className="text-base sm:text-xl font-bold text-gray-900">{cat.name}</h3>
+                              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${cat.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                                {cat.status}
+                              </span>
                             </div>
-
-                            <div className="flex flex-wrap gap-2 items-start">
-                              {cat.images && cat.images.length > 0 && (
-                                <div className="flex gap-1 flex-wrap">
-                                  {cat.images.slice(0, 3).map((img, idx) => (
-                                    <div key={idx} className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 border-pink-200">
-                                      {isValidImageUrl(img) ? (
-                                        <Image src={img} alt={`${cat.name} ${idx + 1}`} fill className="object-cover" sizes="64px" />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-pink-50">
-                                          <ImageIcon className="w-6 h-6 text-pink-300" />
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                              <button onClick={() => openCategoryModal(cat)} className="px-3 sm:px-4 py-2 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-100 transition">
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => setConfirmDelete({ type: "category", id: cat._id })} className="px-3 sm:px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-2 font-mono break-all">{cat.slug}</p>
+                            {cat.description && <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">{cat.description}</p>}
                           </div>
+                          {cat.images && cat.images.length > 0 && (
+                            <div className="flex gap-1.5 flex-shrink-0">
+                              {cat.images.slice(0, 2).map((img, idx) => (
+                                <div key={idx} className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 border-pink-200">
+                                  {isValidImageUrl(img) ? (
+                                    <Image src={img} alt={`${cat.name} ${idx + 1}`} fill className="object-cover" sizes="64px" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-pink-50">
+                                      <ImageIcon className="w-4 h-4 sm:w-6 sm:h-6 text-pink-300" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            onClick={() => openCategoryModal(cat)} 
+                            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition font-medium text-xs sm:text-sm"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                            <span>Edit</span>
+                          </button>
+                          <button 
+                            onClick={() => setConfirmDelete({ type: "category", id: cat._id })} 
+                            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition font-medium text-xs sm:text-sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete </span>
+                          </button>
+                          <button
+                            onClick={() => toggleCategory(cat._id)}
+                            className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg hover:from-teal-600 hover:to-teal-700 transition shadow-md font-medium text-xs sm:text-sm"
+                          >
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            <span>Subcategories ({subs.length})</span>
+                          </button>
+                          <button
+                            onClick={() => openSubcategoryModal(cat._id)}
+                            className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-cyan-50 text-cyan-700 hover:bg-cyan-100 border border-cyan-200 transition text-xs sm:text-sm font-medium"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>Add Subcategory</span>
+                          </button>
                         </div>
                       </div>
 
                       {isExpanded && (
-                        <div className="mt-6 ml-0 sm:ml-9 space-y-3">
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                        <div className="mt-6 ml-0 sm:ml-12 space-y-3 border-t border-pink-100 pt-6">
+                          <div className="flex items-center justify-between mb-4">
                             <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                              <Layers className="w-4 h-4" />
+                              <Layers className="w-4 h-4 text-cyan-600" />
                               Subcategories
                             </h4>
-                            <button
-                              onClick={() => openSubcategoryModal(cat._id)}
-                              className="inline-flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition text-sm font-medium w-full sm:w-auto"
-                            >
-                              <Plus className="w-4 h-4" /> Add Subcategory
-                            </button>
                           </div>
 
                           {subs.length === 0 ? (
-                            <p className="text-sm text-gray-400 italic py-4">No subcategories yet</p>
+                            <p className="text-sm text-gray-400 italic py-4 text-center">No subcategories yet. Click &quot;Add Subcategory&quot; to create one.</p>
                           ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {subs.map((sub) => (
-                                <div key={sub._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                                  <div className="flex-1">
-                                    <h5 className="font-semibold text-gray-900">{sub.name}</h5>
-                                    <p className="text-xs text-gray-500">{sub.slug}</p>
-                                    {sub.description && <p className="text-sm text-gray-600 mt-1">{sub.description}</p>}
-                                    <span className={`inline-block mt-2 px-2 py-0.5 text-xs font-bold rounded-full ${sub.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
-                                      {sub.status}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+                                <div key={sub._id} className="flex flex-col gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-200 hover:border-cyan-200 hover:bg-cyan-50/30 transition">
+                                  <div className="flex items-start gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <h5 className="font-semibold text-gray-900 text-sm sm:text-base">{sub.name}</h5>
+                                        <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${sub.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                                          {sub.status}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-gray-500 font-mono break-all">{sub.slug}</p>
+                                      {sub.description && <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{sub.description}</p>}
+                                    </div>
                                     {sub.images && sub.images.length > 0 && (
-                                      <div className="flex gap-1 flex-wrap">
-                                        {sub.images.slice(0, 3).map((img, idx) => (
+                                      <div className="flex gap-1.5 flex-shrink-0">
+                                        {sub.images.slice(0, 2).map((img, idx) => (
                                           <div key={idx} className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border-2 border-cyan-200">
                                             {isValidImageUrl(img) ? (
                                               <Image src={img} alt={`${sub.name} ${idx + 1}`} fill className="object-cover" sizes="48px" />
                                             ) : (
                                               <div className="w-full h-full flex items-center justify-center bg-cyan-50">
-                                                <ImageIcon className="w-4 h-4 text-cyan-300" />
+                                                <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-300" />
                                               </div>
                                             )}
                                           </div>
                                         ))}
                                       </div>
                                     )}
-                                    <button onClick={() => openSubcategoryModal(cat._id, sub)} className="px-3 py-2 rounded-lg bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition">
-                                      <Edit2 className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <button 
+                                      onClick={() => openSubcategoryModal(cat._id, sub)} 
+                                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition text-xs sm:text-sm font-medium"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                      <span>Edit</span>
                                     </button>
-                                    <button onClick={() => setConfirmDelete({ type: "subcategory", id: sub._id })} className="px-3 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">
-                                      <Trash2 className="w-4 h-4" />
+                                    <button 
+                                      onClick={() => setConfirmDelete({ type: "subcategory", id: sub._id })} 
+                                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition text-xs sm:text-sm font-medium"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                      <span>Delete</span>
                                     </button>
                                   </div>
                                 </div>

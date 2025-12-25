@@ -27,9 +27,9 @@ import {
   useUpdateProductMutation,
   useDeleteProductMutation,
 } from "@/services/products.api";
-import { useListCategoriesQuery } from "@/services/categories.api";
-import { useListSubcategoriesQuery } from "@/services/subcategories.api";
-import { useListManufacturersQuery } from "@/services/manufacturers.api";
+import { useListCategoriesQuery, useCreateCategoryMutation } from "@/services/categories.api";
+import { useListSubcategoriesQuery, useCreateSubcategoryMutation } from "@/services/subcategories.api";
+import { useListManufacturersQuery, useCreateManufacturerMutation } from "@/services/manufacturers.api";
 
 import UploadImages, { type UploadItem } from "@/components/UploadImages";
 
@@ -149,6 +149,11 @@ export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  
+  // Quick add modals
+  const [quickAddModal, setQuickAddModal] = useState<"brand" | "category" | "subcategory" | null>(null);
+  const [quickAddForm, setQuickAddForm] = useState({ name: "", slug: "" });
+  const [quickAddImages, setQuickAddImages] = useState<UploadItem[]>([]);
 
   // form state (aligned with backend DTO)
   const [form, setForm] = useState({
@@ -174,6 +179,10 @@ export default function ProductsPage() {
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  
+  const [createBrand] = useCreateManufacturerMutation();
+  const [createCategory] = useCreateCategoryMutation();
+  const [createSubcategory] = useCreateSubcategoryMutation();
 
   // Normalize list results defensively
   const products: Product[] = (productsData?.data?.items ??
@@ -352,6 +361,53 @@ export default function ProductsPage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, ""),
     }));
+  };
+
+  const handleQuickAdd = async () => {
+    if (!quickAddForm.name.trim()) return;
+    
+    try {
+      if (quickAddModal === "brand") {
+        await createBrand({ 
+          name: quickAddForm.name, 
+          slug: quickAddForm.slug, 
+          image: quickAddImages[0]?.url,
+          status: "ACTIVE" 
+        }).unwrap();
+        setForm({ ...form, brand: quickAddForm.slug });
+        toast.success("Brand created!");
+      } else if (quickAddModal === "category") {
+        await createCategory({ 
+          name: quickAddForm.name, 
+          slug: quickAddForm.slug, 
+          images: quickAddImages.map(img => img.url),
+          status: "ACTIVE" 
+        }).unwrap();
+        setForm({ ...form, categorySlug: quickAddForm.slug });
+        toast.success("Category created!");
+      } else if (quickAddModal === "subcategory") {
+        if (!form.categorySlug) {
+          toast.error("Select a category first");
+          return;
+        }
+        const categoryId = categories.find((c) => c.slug === form.categorySlug)?._id;
+        if (!categoryId) return;
+        await createSubcategory({ 
+          name: quickAddForm.name, 
+          slug: quickAddForm.slug, 
+          categoryId, 
+          images: quickAddImages.map(img => img.url),
+          status: "ACTIVE" 
+        }).unwrap();
+        setForm({ ...form, subcategorySlug: quickAddForm.slug });
+        toast.success("Subcategory created!");
+      }
+      setQuickAddModal(null);
+      setQuickAddForm({ name: "", slug: "" });
+      setQuickAddImages([]);
+    } catch {
+      toast.error("Failed to create");
+    }
   };
 
   // Skeleton card
@@ -653,58 +709,89 @@ export default function ProductsPage() {
                     <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                       Brand
                     </label>
-                    <select
-                      value={form.brand}
-                      onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
-                    >
-                      <option value="">Select Brand (Optional)</option>
-                      {brands.map((brand) => (
-                        <option key={brand._id} value={brand.slug}>
-                          {brand.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2">
+                      <select
+                        value={form.brand}
+                        onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                        className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
+                      >
+                        <option value="">Select Brand (Optional)</option>
+                        {brands.map((brand) => (
+                          <option key={brand._id} value={brand.slug}>
+                            {brand.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setQuickAddModal("brand")}
+                        className="px-3 py-2.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition"
+                        title="Add new brand"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                       Category *
                     </label>
-                    <select
-                      value={form.categorySlug}
-                      onChange={(e) =>
-                        setForm({ ...form, categorySlug: e.target.value, subcategorySlug: "" })
-                      }
-                      required
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
-                    >
-                      <option value="">Select Category</option>
-                      {categories.map((cat) => (
-                        <option key={cat._id} value={cat.slug}>
-                          {cat.title || cat.name || cat.slug}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2">
+                      <select
+                        value={form.categorySlug}
+                        onChange={(e) =>
+                          setForm({ ...form, categorySlug: e.target.value, subcategorySlug: "" })
+                        }
+                        required
+                        className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map((cat) => (
+                          <option key={cat._id} value={cat.slug}>
+                            {cat.title || cat.name || cat.slug}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setQuickAddModal("category")}
+                        className="px-3 py-2.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition"
+                        title="Add new category"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                       Subcategory (Optional)
                     </label>
-                    <select
-                      value={form.subcategorySlug}
-                      onChange={(e) =>
-                        setForm({ ...form, subcategorySlug: e.target.value })
-                      }
-                      disabled={!form.categorySlug}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition disabled:bg-gray-100"
-                    >
-                      <option value="">Select Subcategory</option>
-                      {subcategories.map((sub) => (
-                        <option key={sub._id} value={sub.slug}>
-                          {sub.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex gap-2">
+                      <select
+                        value={form.subcategorySlug}
+                        onChange={(e) =>
+                          setForm({ ...form, subcategorySlug: e.target.value })
+                        }
+                        disabled={!form.categorySlug}
+                        className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition disabled:bg-gray-100"
+                      >
+                        <option value="">Select Subcategory</option>
+                        {subcategories.map((sub) => (
+                          <option key={sub._id} value={sub.slug}>
+                            {sub.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setQuickAddModal("subcategory")}
+                        disabled={!form.categorySlug}
+                        className="px-3 py-2.5 rounded-xl bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Add new subcategory"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -864,6 +951,74 @@ export default function ProductsPage() {
         onConfirm={confirmDelete}
         loading={isDeleting}
       />
+
+      {/* Quick Add Modal */}
+      {quickAddModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-pink-200 max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-pink-100">
+              <h3 className="text-lg font-bold text-gray-900">
+                Add New {quickAddModal === "brand" ? "Brand" : quickAddModal === "category" ? "Category" : "Subcategory"}
+              </h3>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Name *</label>
+                <input
+                  type="text"
+                  value={quickAddForm.name}
+                  onChange={(e) =>
+                    setQuickAddForm({
+                      name: e.target.value,
+                      slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+                    })
+                  }
+                  placeholder="Enter name"
+                  className="w-full px-4 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Slug *</label>
+                <input
+                  type="text"
+                  value={quickAddForm.slug}
+                  onChange={(e) => setQuickAddForm({ ...quickAddForm, slug: e.target.value })}
+                  placeholder="auto-generated-slug"
+                  className="w-full px-4 py-2.5 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition font-mono text-sm"
+                />
+              </div>
+              <div>
+                <UploadImages
+                  label={quickAddModal === "brand" ? "Brand Logo" : "Images"}
+                  value={quickAddImages}
+                  onChange={setQuickAddImages}
+                  max={quickAddModal === "brand" ? 1 : 3}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 p-5 border-t border-pink-100">
+              <button
+                onClick={() => {
+                  setQuickAddModal(null);
+                  setQuickAddForm({ name: "", slug: "" });
+                  setQuickAddImages([]);
+                }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQuickAdd}
+                disabled={!quickAddForm.name.trim()}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#167389] to-[#167389] text-white font-semibold hover:from-cyan-300 hover:to-cyan-700 disabled:opacity-50 transition"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

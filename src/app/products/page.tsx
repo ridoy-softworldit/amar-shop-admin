@@ -29,6 +29,7 @@ import {
 } from "@/services/products.api";
 import { useListCategoriesQuery } from "@/services/categories.api";
 import { useListSubcategoriesQuery } from "@/services/subcategories.api";
+import { useListManufacturersQuery } from "@/services/manufacturers.api";
 
 import UploadImages, { type UploadItem } from "@/components/UploadImages";
 
@@ -166,13 +167,9 @@ export default function ProductsPage() {
   const [images, setImages] = useState<UploadItem[]>([]);
 
   // RTK Query
-  const {
-    data: productsData,
-    isLoading,
-    error,
-    isFetching,
-  } = useListProductsQuery({ q: searchQuery, category: categoryFilter });
+  const { data: productsData, isLoading, error, isFetching } = useListProductsQuery({ q: searchQuery, category: categoryFilter });
   const { data: categoriesData } = useListCategoriesQuery();
+  const { data: brandsData } = useListManufacturersQuery();
 
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
@@ -190,6 +187,12 @@ export default function ProductsPage() {
     slug: string;
     title?: string;
     name?: string;
+  }>;
+
+  const brands = (brandsData?.data ?? brandsData ?? []) as Array<{
+    _id: string;
+    slug: string;
+    name: string;
   }>;
 
   const selectedCategoryId = categories.find((c) => c.slug === form.categorySlug)?._id;
@@ -496,20 +499,23 @@ export default function ProductsPage() {
                         </div>
                       )}
 
-                      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1 sm:gap-2">
-                        {pct > 0 && (
-                          <span className="bg-gradient-to-r from-pink-600 to-rose-600 text-white text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md">
-                            -{pct}%
+                      <div className="absolute top-2 left-2 right-2 flex justify-between gap-2">
+                        <div className="flex flex-col gap-1">
+                          {pct > 0 && (
+                            <span className="bg-gradient-to-r from-pink-600 to-rose-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md">
+                              -{pct}%
+                            </span>
+                          )}
+                          <span className="bg-blue-600/70 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md">
+                            Stock: {n(p.stock)}
                           </span>
-                        )}
-                      </div>
-                      <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
+                        </div>
                         {p.status === "ACTIVE" ? (
-                          <span className="bg-green-600 text-white text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md">
+                          <span className="bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md h-fit">
                             Active
                           </span>
                         ) : (
-                          <span className="bg-gray-500 text-white text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-md">
+                          <span className="bg-gray-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-md h-fit">
                             {p.status}
                           </span>
                         )}
@@ -517,75 +523,48 @@ export default function ProductsPage() {
                     </div>
 
                     {/* Info */}
-                    <div className="p-3 sm:p-4">
-                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem]">
+                    <div className="p-2 sm:p-3">
+                      <h3 className="text-xs sm:text-sm font-semibold text-gray-900 mb-1 line-clamp-1">
                         {p.title}
                       </h3>
 
-                      <div className="text-[11px] sm:text-xs text-gray-500 mb-2 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1">
-                          <Store className="w-3.5 h-3.5" />
-                          Stock: {n(p.stock)}
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base sm:text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
+                            ৳{n(p.price)}
+                          </span>
+                          {p.compareAtPrice != null &&
+                            n(p.compareAtPrice) > n(p.price) && (
+                              <span className="text-[10px] sm:text-xs text-gray-400 line-through">
+                                ৳{n(p.compareAtPrice)}
+                              </span>
+                            )}
                         </div>
-                        {p.brand && (
-                          <div className="text-[11px] sm:text-xs text-pink-600 font-medium flex items-center gap-1">
-                            <Tag className="w-3.5 h-3.5" />
-                            {p.brand}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-baseline gap-1 sm:gap-2 mb-2">
-                        <span className="text-lg sm:text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
-                          ৳{n(p.price)}
-                        </span>
-                        {p.compareAtPrice != null &&
-                          n(p.compareAtPrice) > n(p.price) && (
-                            <span className="text-xs sm:text-sm text-gray-400 line-through">
-                              ৳{n(p.compareAtPrice)}
-                            </span>
-                          )}
-                      </div>
-
-                      {Array.isArray(p.tagSlugs) && p.tagSlugs.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {p.tagSlugs.slice(0, 3).map((t) => (
-                            <span
-                              key={t}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-pink-200 text-[10px] sm:text-xs text-pink-700"
-                            >
-                              <Tag className="w-3 h-3" />
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex flex-col gap-2">
                         <button
                           onClick={() => window.location.href = `/products/${p._id}/inventory`}
-                          className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 transition text-xs sm:text-sm"
+                          className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 transition text-[10px] sm:text-xs"
                         >
-                          <PackageOpen className="w-4 h-4" />
+                          <PackageOpen className="w-3 h-3" />
                           Manage Stock
                         </button>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openEdit(p)}
-                            className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-pink-50 text-pink-700 hover:from-cyan-300 hover:to-cyan-700 border border-pink-100 transition text-xs sm:text-sm"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => requestDelete(p._id)}
-                            disabled={isDeleting}
-                            className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-100 disabled:opacity-50 transition text-xs sm:text-sm"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </button>
-                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-1.5">
+                        <button
+                          onClick={() => openEdit(p)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 border border-green-100 transition text-xs"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => requestDelete(p._id)}
+                          disabled={isDeleting}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-100 disabled:opacity-50 transition text-xs"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -674,15 +653,18 @@ export default function ProductsPage() {
                     <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                       Brand
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={form.brand}
-                      onChange={(e) =>
-                        setForm({ ...form, brand: e.target.value })
-                      }
-                      placeholder="L'Oréal"
+                      onChange={(e) => setForm({ ...form, brand: e.target.value })}
                       className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
-                    />
+                    >
+                      <option value="">Select Brand (Optional)</option>
+                      {brands.map((brand) => (
+                        <option key={brand._id} value={brand.slug}>
+                          {brand.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">

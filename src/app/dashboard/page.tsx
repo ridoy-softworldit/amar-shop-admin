@@ -1,71 +1,64 @@
 "use client";
 
+import { useState } from "react";
 import {
   Package,
   ShoppingCart,
   Users,
   TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
   DollarSign,
   Clock,
   CheckCircle,
   XCircle,
   AlertCircle,
+  ArrowRight,
+  Layers,
+  Archive,
+  PackageX,
 } from "lucide-react";
 import { useListOrdersQuery } from "@/services/orders.api";
 import { useListProductsQuery } from "@/services/products.api";
+import { useListCategoriesQuery } from "@/services/categories.api";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function DashboardPage() {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  
   const { data: ordersData } = useListOrdersQuery({ limit: 5 });
-  const { data: productsData } = useListProductsQuery({});
+  const { data: allOrdersData } = useListOrdersQuery({ 
+    limit: 50000,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+  });
+  const { data: productsData } = useListProductsQuery({
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+  });
+  const { data: categoriesData } = useListCategoriesQuery();
 
   const orders = ordersData?.data?.items || [];
+  const allOrders = allOrdersData?.data?.items || [];
   const products = productsData?.data?.items || [];
 
   const totalOrders = ordersData?.data?.total || 0;
   const totalProducts = productsData?.data?.total || products.length;
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.totals?.grandTotal || 0), 0);
-  const uniqueCustomers = new Set(orders.map(o => o.customer?.email)).size;
-
-  const stats = [
-    {
-      title: "Total Revenue",
-      value: `৳${totalRevenue.toLocaleString()}`,
-      change: "+12.5%",
-      isPositive: true,
-      icon: DollarSign,
-      bgColor: "from-pink-500 to-rose-600",
-    },
-    {
-      title: "Total Orders",
-      value: totalOrders.toString(),
-      change: "+8.2%",
-      isPositive: true,
-      icon: ShoppingCart,
-      bgColor: "from-purple-500 to-indigo-600",
-    },
-    {
-      title: "Total Products",
-      value: totalProducts.toString(),
-      change: "+5.1%",
-      isPositive: true,
-      icon: Package,
-      bgColor: "from-rose-500 to-pink-600",
-    },
-    {
-      title: "Total Customers",
-      value: uniqueCustomers.toString(),
-      change: "-2.4%",
-      isPositive: false,
-      icon: Users,
-      bgColor: "from-fuchsia-500 to-purple-600",
-    },
-  ];
+  const totalCategories = categoriesData?.data?.length || 0;
+  const totalRevenue = allOrders.reduce((sum, o) => sum + (o.totals?.grandTotal || 0), 0);
+  
+  const customerMap = new Map();
+  allOrders.forEach(order => {
+    const identifier = order.customer?.email || order.customer?.phone || order.customer?.name || `guest-${order._id}`;
+    if (identifier && !customerMap.has(identifier)) {
+      customerMap.set(identifier, true);
+    }
+  });
+  const uniqueCustomers = customerMap.size;
 
   const recentOrders = orders.slice(0, 5).map(o => ({
-    id: `#${o._id.slice(-6).toUpperCase()}`,
+    id: o._id,
+    displayId: `#${o._id.slice(-6).toUpperCase()}`,
     customer: o.customer?.name || "Guest",
     amount: `৳${(o.totals?.grandTotal || 0).toLocaleString()}`,
     status: o.status,
@@ -73,6 +66,7 @@ export default function DashboardPage() {
   }));
 
   const topProducts = products.slice(0, 4).map((p: Record<string, unknown>) => ({
+    id: p._id as string,
     name: (p.title as string) || "Untitled",
     sold: (p.stock as number) || 0,
     revenue: `৳${(((p.price as number) || 0) * ((p.stock as number) || 0)).toLocaleString()}`,
@@ -112,50 +106,91 @@ export default function DashboardPage() {
             Welcome back! Here is what is happening with your beauty store
             today.
           </p>
+          <div className="flex gap-3 mt-4">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-4 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
+              placeholder="Start Date"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-4 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
+              placeholder="End Date"
+            />
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={idx}
-                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
-              >
-                <div className="p-5 sm:p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div
-                      className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${stat.bgColor} rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300`}
-                    >
-                      <Icon
-                        className="w-6 h-6 sm:w-7 sm:h-7 text-white"
-                        strokeWidth={2.5}
-                      />
-                    </div>
-                    <div
-                      className={`flex items-center gap-1 text-xs sm:text-sm font-semibold ${
-                        stat.isPositive ? "text-emerald-600" : "text-red-600"
-                      }`}
-                    >
-                      {stat.isPositive ? (
-                        <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      ) : (
-                        <ArrowDownRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      )}
-                      {stat.change}
-                    </div>
-                  </div>
-                  <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1">
-                    {stat.title}
-                  </h3>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-800">
-                    {stat.value}
-                  </p>
-                </div>
+        {/* Quick Links */}
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Quick Links</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <Link href="/revenue" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-emerald-300">
+              <div className="flex items-center justify-between mb-3">
+                <DollarSign className="w-8 h-8 text-emerald-600" />
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
               </div>
-            );
-          })}
+              <h3 className="font-semibold text-gray-800 mb-1">Total Revenue</h3>
+              <p className="text-2xl font-bold text-emerald-600">৳{totalRevenue.toLocaleString()}</p>
+            </Link>
+
+            <Link href="/products" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-pink-300">
+              <div className="flex items-center justify-between mb-3">
+                <Package className="w-8 h-8 text-pink-600" />
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-semibold text-gray-800 mb-1">All Products</h3>
+              <p className="text-2xl font-bold text-pink-600">{totalProducts}</p>
+            </Link>
+
+            <Link href="/orders" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-purple-300">
+              <div className="flex items-center justify-between mb-3">
+                <ShoppingCart className="w-8 h-8 text-purple-600" />
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-semibold text-gray-800 mb-1">Orders</h3>
+              <p className="text-2xl font-bold text-purple-600">{totalOrders}</p>
+            </Link>
+
+            <Link href="/inventory" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-rose-300">
+              <div className="flex items-center justify-between mb-3">
+                <Archive className="w-8 h-8 text-rose-600" />
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-rose-600 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-semibold text-gray-800 mb-1">Stock Manage</h3>
+              <p className="text-2xl font-bold text-rose-600">{totalProducts}</p>
+            </Link>
+
+            <Link href="/categories" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-indigo-300">
+              <div className="flex items-center justify-between mb-3">
+                <Layers className="w-8 h-8 text-indigo-600" />
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-semibold text-gray-800 mb-1">Categories</h3>
+              <p className="text-2xl font-bold text-indigo-600">{totalCategories}</p>
+            </Link>
+
+            <Link href="/customers" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-blue-300">
+              <div className="flex items-center justify-between mb-3">
+                <Users className="w-8 h-8 text-blue-600" />
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-semibold text-gray-800 mb-1">Total Customers</h3>
+              <p className="text-2xl font-bold text-blue-600">{uniqueCustomers}</p>
+            </Link>
+
+            <Link href="/returns" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-orange-300">
+              <div className="flex items-center justify-between mb-3">
+                <PackageX className="w-8 h-8 text-orange-600" />
+                <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
+              </div>
+              <h3 className="font-semibold text-gray-800 mb-1">Order Returns</h3>
+              <p className="text-2xl font-bold text-orange-600">View All</p>
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -167,21 +202,22 @@ export default function DashboardPage() {
                 <span className="hidden sm:inline">Recent Orders</span>
                 <span className="sm:hidden">Orders</span>
               </h2>
-              <button className="text-xs sm:text-sm text-pink-600 hover:text-pink-700 font-semibold hover:underline">
+              <Link href="/orders" className="text-xs sm:text-sm text-pink-600 hover:text-pink-700 font-semibold hover:underline">
                 View All
-              </button>
+              </Link>
             </div>
 
             <div className="space-y-3 sm:space-y-4">
               {recentOrders.map((order) => (
-                <div
+                <Link
                   key={order.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl hover:shadow-md transition-all duration-200 border border-pink-100"
+                  href={`/orders/${order.id}/invoice`}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl hover:shadow-md transition-all duration-200 border border-pink-100 cursor-pointer"
                 >
                   <div className="flex-1 w-full sm:w-auto mb-3 sm:mb-0">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
                       <span className="font-bold text-gray-800 text-sm sm:text-base">
-                        {order.id}
+                        {order.displayId}
                       </span>
                       {getStatusBadge(order.status)}
                     </div>
@@ -195,7 +231,7 @@ export default function DashboardPage() {
                       {order.amount}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -208,13 +244,17 @@ export default function DashboardPage() {
                 <span className="hidden sm:inline">Top Products</span>
                 <span className="sm:hidden">Top</span>
               </h2>
+              <Link href="/products" className="text-xs sm:text-sm text-pink-600 hover:text-pink-700 font-semibold hover:underline">
+                View All
+              </Link>
             </div>
 
             <div className="space-y-3 sm:space-y-4">
-              {topProducts.map((product: { name: string; sold: number; revenue: string; image: string }, idx: number) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl hover:shadow-md transition-all duration-200 border border-pink-100"
+              {topProducts.map((product: { id: string; name: string; sold: number; revenue: string; image: string }) => (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.id}/inventory`}
+                  className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl hover:shadow-md transition-all duration-200 border border-pink-100 cursor-pointer"
                 >
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm flex-shrink-0 overflow-hidden">
                     {typeof product.image === 'string' && product.image.startsWith('http') ? (
@@ -236,7 +276,7 @@ export default function DashboardPage() {
                       {product.revenue}
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

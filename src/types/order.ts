@@ -3,7 +3,8 @@ export type OrderStatus =
   | "IN_PROGRESS"
   | "IN_SHIPPING"
   | "DELIVERED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "RETURNED";
 
 
   export type OrderLine = {

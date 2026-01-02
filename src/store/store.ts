@@ -9,6 +9,7 @@ import { bannersApi } from "@/services/banners.api";
 import { inventoryApi } from "@/services/inventory.api";
 import { deliveryApi } from "@/services/delivery.api";
 import { manufacturersApi } from "@/services/manufacturers.api";
+import { returnsApi } from "@/services/returns.api";
 
 export const store = configureStore({
   reducer: {
@@ -22,6 +23,7 @@ export const store = configureStore({
     [inventoryApi.reducerPath]: inventoryApi.reducer,
     [deliveryApi.reducerPath]: deliveryApi.reducer,
     [manufacturersApi.reducerPath]: manufacturersApi.reducer,
+    [returnsApi.reducerPath]: returnsApi.reducer,
   },
   middleware: (getDefault) =>
     getDefault().concat(
@@ -33,7 +35,8 @@ export const store = configureStore({
       bannersApi.middleware,
       inventoryApi.middleware,
       deliveryApi.middleware,
-      manufacturersApi.middleware
+      manufacturersApi.middleware,
+      returnsApi.middleware
     ),
   devTools: process.env.NODE_ENV !== "production",
 });

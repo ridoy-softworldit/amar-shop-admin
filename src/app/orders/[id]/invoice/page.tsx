@@ -99,13 +99,27 @@ export default function InvoicePage() {
         {/* Invoice Content */}
         <div className="p-8">
           {/* Header */}
-          <div className="text-center border-b-2 border-[#167389] pb-4 mb-6">
-            <h1 className="text-3xl font-bold text-[#167389] mb-2">
-              {process.env.NEXT_PUBLIC_BRAND || "Amar Shop"}
-            </h1>
-            <p className="text-sm text-gray-600">INVOICE</p>
-            <div className="mt-2 text-xs text-gray-500">
-              <p>Order ID: {order._id}</p>
+          <div className="flex items-center justify-between border-b-2 border-[#167389] pb-4 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center">
+                <Image
+                  src="/logo-amar-shop.jpg"
+                  alt="Logo"
+                  width={64}
+                  height={64}
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-[#167389]">
+                  {process.env.NEXT_PUBLIC_BRAND || "Amar Shop"}
+                </h1>
+                <p className="text-sm text-gray-600">INVOICE</p>
+              </div>
+            </div>
+            <div className="text-right text-xs text-gray-500">
+              <p className="font-semibold">Order ID: {order._id}</p>
               <p>Date: {bnDate(order.createdAt)}</p>
             </div>
           </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Plus,
   Edit2,
@@ -17,6 +17,7 @@ import {
   Tag,
   Store,
   PackageOpen,
+  ArrowLeft,
 } from "lucide-react";
 import Image from "next/image";
 import { Toaster, toast } from "react-hot-toast";
@@ -136,6 +137,7 @@ function ConfirmDialog({
 
 // ---------- Page ----------
 export default function ProductsPage() {
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   // filters/search
@@ -144,6 +146,8 @@ export default function ProductsPage() {
     searchParams.get("category") || ""
   );
   const [subcategoryFilter, setSubcategoryFilter] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // modal + edit state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -172,7 +176,12 @@ export default function ProductsPage() {
   const [images, setImages] = useState<UploadItem[]>([]);
 
   // RTK Query
-  const { data: productsData, isLoading, error, isFetching } = useListProductsQuery({ q: searchQuery, category: categoryFilter });
+  const { data: productsData, isLoading, error, isFetching } = useListProductsQuery({ 
+    q: searchQuery, 
+    category: categoryFilter,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+  });
   const { data: categoriesData } = useListCategoriesQuery();
   const { data: brandsData } = useListManufacturersQuery();
 
@@ -433,6 +442,13 @@ export default function ProductsPage() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-4 sm:mb-6 lg:mb-8">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </button>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389]  to-[#167389] mb-2 flex items-center gap-2 sm:gap-3">
               <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-[#167389]" />
               <span className="leading-tight">Products Management</span>
@@ -488,6 +504,19 @@ export default function ProductsPage() {
                   </option>
                 ))}
               </select>
+
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
+              />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
+              />
 
               {/* Add */}
               <button
@@ -869,10 +898,10 @@ export default function ProductsPage() {
 
                 {/* Images (multiple) */}
                 <UploadImages
-                  label="Product Images"
+                  label="Product Images (Up to 5)"
                   value={images}
                   onChange={setImages}
-                  max={8}
+                  max={5}
                 />
 
                 {/* Status & Tags */}

@@ -10,13 +10,15 @@ export const ordersApi = createApi({
   endpoints: (builder) => ({
     listOrders: builder.query<
       ApiOk<Paginated<Order>>,
-      { page?: number; limit?: number; status?: Order["status"] } | void
+      { page?: number; limit?: number; status?: Order["status"]; startDate?: string; endDate?: string } | void
     >({
       query: (args) => {
         const page = String(args?.page ?? 1);
         const limit = String(args?.limit ?? 50);
         const params = new URLSearchParams({ page, limit });
         if (args?.status) params.set("status", args.status);
+        if (args?.startDate) params.set("startDate", args.startDate);
+        if (args?.endDate) params.set("endDate", args.endDate);
         return `/orders?${params.toString()}`;
       },
       providesTags: (result) =>

@@ -17,6 +17,9 @@ import {
   Layers,
   PackageSearch,
   Tag,
+  DollarSign,
+  Users,
+  PackageX,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,11 +28,14 @@ import { usePathname, useRouter } from "next/navigation";
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/orders", label: "Orders", icon: ClipboardList },
+  { href: "/customers", label: "Customers", icon: Users },
   { href: "/products", label: "All Products", icon: Package },
   { href: "/inventory", label: "Stock Management", icon: PackageSearch },
   { href: "/categories", label: "Categories", icon: FolderTree },
   { href: "/subcategories", label: "Subcategories", icon: Layers },
   { href: "/brands", label: "Brands", icon: Tag },
+  { href: "/returns", label: "Order Returns", icon: PackageX },
+  { href: "/revenue", label: "Revenue", icon: DollarSign },
   { href: "/banners", label: "Home Banners", icon: ImageIcon },
   { href: "/delivery-settings", label: "Delivery Charge", icon: Truck },
 ];
@@ -54,7 +60,7 @@ export default function Sidebar() {
     )}>
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-gray-200">
+        <Link href="/dashboard" className="flex items-center gap-3 px-4 py-5 border-b border-gray-200 hover:bg-gray-50 transition-colors">
           <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center flex-shrink-0">
             <Image
               src="/logo-amar-shop.jpg"
@@ -66,7 +72,7 @@ export default function Sidebar() {
             />
           </div>
           {!isCollapsed && <span className="text-lg font-bold text-[#167389] truncate">{brand}</span>}
-        </div>
+        </Link>
 
         {/* Toggle Button */}
         <button

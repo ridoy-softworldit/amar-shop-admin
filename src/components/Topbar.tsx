@@ -20,6 +20,9 @@ import {
   Layers,
   PackageSearch,
   Tag,
+  DollarSign,
+  Users,
+  PackageX,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +32,9 @@ import { useState } from "react";
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/orders", label: "Orders", icon: ClipboardList },
+  { href: "/returns", label: "Order Returns", icon: PackageX },
+  { href: "/revenue", label: "Revenue", icon: DollarSign },
+  { href: "/customers", label: "Customers", icon: Users },
   { href: "/products", label: "All Products", icon: Package },
   { href: "/inventory", label: "Stock Management", icon: PackageSearch },
   { href: "/categories", label: "Categories", icon: FolderTree },
@@ -81,9 +87,9 @@ export default function Topbar() {
         <div className="flex items-center gap-4 py-4">
           {/* Logo & Brand - Mobile Only */}
           <Link
-            href="/"
+            href="/dashboard"
             className="flex lg:hidden items-center gap-2 shrink-0 group"
-            aria-label="Go to homepage"
+            aria-label="Go to dashboard"
           >
             <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center">
               <Image

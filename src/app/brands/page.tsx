@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Edit2, Trash2, Search, Tag, Loader2, Image as ImageIcon, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Edit2, Trash2, Search, Tag, Loader2, Image as ImageIcon, X, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { toast, Toaster } from "react-hot-toast";
 import {
@@ -52,6 +53,7 @@ function ConfirmDialog({
 }
 
 export default function BrandsPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Manufacturer | null>(null);
@@ -150,6 +152,13 @@ export default function BrandsPage() {
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </button>
             <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389] to-[#167389] flex items-center gap-3">
               <Tag className="w-10 h-10 text-[#167389]" />
               Brands Management

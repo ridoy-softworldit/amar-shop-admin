@@ -78,13 +78,15 @@ export const productsApi = createApi({
     //  GET /products?q=...&category=...
     listProducts: builder.query<
       any,
-      { page?: number; q?: string; category?: string }
+      { page?: number; q?: string; category?: string; startDate?: string; endDate?: string }
     >({
       query: (p) => {
         const usp = new URLSearchParams();
         if (p?.page) usp.set("page", String(p.page));
         if (p?.q) usp.set("q", p.q);
         if (p?.category) usp.set("category", p.category);
+        if (p?.startDate) usp.set("startDate", p.startDate);
+        if (p?.endDate) usp.set("endDate", p.endDate);
         return { url: `/products?${usp.toString()}`, method: "GET" };
       },
       providesTags: ["Products"],

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Search,
@@ -18,6 +19,8 @@ import {
   Trash2,
   FileText,
   Printer,
+  ArrowLeft,
+  Ban,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +32,7 @@ import {
   useDeleteOrderMutation,
 } from "@/services/orders.api";
 import { useGetProductByIdQuery } from "@/services/products.api";
+import { useProcessReturnMutation } from "@/services/returns.api";
 import type { Order, OrderStatus } from "@/types/order";
 
 /** date → bn-BD */
@@ -79,10 +83,17 @@ const STATUS_UI: Record<
     text: "text-red-700",
     Icon: XCircle,
   },
+  RETURNED: {
+    label: "Returned",
+    bg: "bg-orange-100",
+    text: "text-orange-700",
+    Icon: Package,
+  },
 };
 
 function StatusBadge({ status }: { status: OrderStatus }) {
   const s = STATUS_UI[status];
+  if (!s) return <span className="text-xs text-gray-500">{status}</span>;
   const I = s.Icon;
   return (
     <span
@@ -130,6 +141,65 @@ function OrderLineItem({ line }: { line: { productId: string; qty: number; title
           ৳{price * line.qty}
         </p>
       </div>
+    </div>
+  );
+}
+
+function ReturnLineItem({ line, onAdd, disabled }: { line: { productId: string; qty: number; title: string; price: number; image?: string }; onAdd: (title: string, image?: string) => void; disabled: boolean }) {
+  const { data: productData } = useGetProductByIdQuery(line.productId);
+  const product = productData?.data;
+  
+  const title = product?.title || line.title || "Product";
+  const image = product?.images?.[0] || product?.image || line.image;
+
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+      {image ? (
+        <Image src={image} alt={title} width={48} height={48} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+      ) : (
+        <div className="w-12 h-12 rounded-lg bg-pink-100 flex-shrink-0" />
+      )}
+      <span className="flex-1 text-sm text-gray-700">{title} (Qty: {line.qty})</span>
+      <button
+        onClick={() => onAdd(title, image)}
+        disabled={disabled}
+        className="px-3 py-1.5 rounded-lg bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+      >
+        Add
+      </button>
+    </div>
+  );
+}
+
+function ReturnItemDisplay({ item, index, onUpdate, onRemove }: { item: { productId: string; title: string; maxQty: number; qty: number; image?: string }; index: number; onUpdate: (index: number, value: string | number) => void; onRemove: (index: number) => void }) {
+  const { data: productData } = useGetProductByIdQuery(item.productId);
+  const product = productData?.data;
+  
+  const title = product?.title || item.title || "Product";
+  const image = product?.images?.[0] || product?.image || item.image;
+
+  return (
+    <div className="p-3 bg-blue-50 rounded-xl border border-blue-200">
+      <div className="flex items-center gap-3 mb-2">
+        {image ? (
+          <Image src={image} alt={title} width={48} height={48} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-pink-100 flex-shrink-0" />
+        )}
+        <span className="flex-1 text-sm font-semibold text-gray-800">{title}</span>
+        <button onClick={() => onRemove(index)} className="text-red-600 hover:text-red-700">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <input
+        type="number"
+        min="1"
+        max={item.maxQty}
+        value={item.qty}
+        onChange={(e) => onUpdate(index, e.target.value)}
+        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+        placeholder="Quantity"
+      />
     </div>
   );
 }
@@ -192,9 +262,12 @@ function Confirm({
 }
 
 export default function OrdersPage() {
+  const router = useRouter();
   /** local UI state */
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
   const limit = 24;
 
@@ -204,15 +277,22 @@ export default function OrdersPage() {
   /** destructive confirms */
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnItems, setReturnItems] = useState<Array<{ productId: string; title: string; maxQty: number; qty: number; image?: string }>>([]);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnNotes, setReturnNotes] = useState("");
 
   /** RTK Query calls */
   const { data, isLoading, isFetching, error } = useListOrdersQuery({
     page,
     limit,
     status: (statusFilter as Order["status"]) || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
   });
   const [doUpdate, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
   const [doDelete, { isLoading: isDeleting }] = useDeleteOrderMutation();
+  const [processReturn, { isLoading: isProcessingReturn }] = useProcessReturnMutation();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const items: Order[] = data?.data?.items ?? [];
@@ -265,6 +345,63 @@ export default function OrdersPage() {
     }
   };
 
+  const openReturnModal = () => {
+    if (!selected) return;
+    setReturnItems([]);
+    setReturnReason("");
+    setReturnNotes("");
+    setShowReturnModal(true);
+  };
+
+  const addReturnItem = (productId: string, title: string, qty: number, image?: string) => {
+    setReturnItems([...returnItems, { productId, title, maxQty: qty, qty: 1, image }]);
+  };
+
+  const addAllItems = () => {
+    if (!selected) return;
+    const allItems = selected.lines.map(line => ({ 
+      productId: line.productId, 
+      title: line.title, 
+      maxQty: line.qty, 
+      qty: line.qty, 
+      image: line.image 
+    }));
+    setReturnItems(allItems);
+  };
+
+  const updateReturnItem = (index: number, value: string | number) => {
+    const updated = [...returnItems];
+    updated[index].qty = Number(value);
+    setReturnItems(updated);
+  };
+
+  const removeReturnItem = (index: number) => {
+    setReturnItems(returnItems.filter((_, i) => i !== index));
+  };
+
+  const submitReturn = async () => {
+    if (!selected || returnItems.length === 0 || !returnReason.trim()) return;
+    try {
+      await processReturn({
+        orderId: selected._id,
+        reason: returnReason,
+        items: returnItems.map(item => ({ productId: item.productId, quantity: item.qty })),
+        notes: returnNotes || undefined,
+      }).unwrap();
+      toast.success("Return processed successfully!");
+      setShowReturnModal(false);
+      setOpenDetails(false);
+      setReturnItems([]);
+      setReturnReason("");
+      setReturnNotes("");
+      window.location.reload();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      toast.error(String(e?.data?.message || e?.data?.code || "Return failed"));
+      console.error(e);
+    }
+  };
+
   /** skeleton */
   const Skeleton = () => (
     <div className="bg-white rounded-2xl shadow-sm border border-pink-100 animate-pulse">
@@ -288,6 +425,13 @@ export default function OrdersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </button>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389] to-[#167389] mb-2 flex items-center gap-2 sm:gap-3">
               <ClipboardList className="w-7 h-7 sm:w-9 sm:h-9 lg:w-10 lg:h-10 text-[#167389]" />
               Orders
@@ -324,7 +468,41 @@ export default function OrdersPage() {
                 <option value="IN_SHIPPING">In Shipping</option>
                 <option value="DELIVERED">Delivered</option>
                 <option value="CANCELLED">Cancelled</option>
+                <option value="RETURNED">Returned</option>
               </select>
+              <button
+                onClick={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  setStartDate(today);
+                  setEndDate(today);
+                }}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-[#167389] text-white font-semibold hover:bg-pink-700 transition text-sm sm:text-base whitespace-nowrap"
+              >
+                Today
+              </button>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition text-sm sm:text-base"
+                placeholder="Start Date"
+              />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition text-sm sm:text-base"
+                placeholder="End Date"
+              />
+              <button
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-red-50 text-red-700 border border-red-200 font-semibold hover:bg-red-100 transition text-sm sm:text-base whitespace-nowrap"
+              >
+                Clear
+              </button>
             </div>
           </div>
 
@@ -585,24 +763,30 @@ export default function OrdersPage() {
                         "IN_SHIPPING",
                         "DELIVERED",
                         "CANCELLED",
+                        "RETURNED",
                       ] as OrderStatus[]
                     ).map((s) => {
-                      const disabled = selected.status === s || isUpdating;
+                      const disabled = selected.status === s || selected.status === "RETURNED" || s === "RETURNED" || isUpdating;
+                      const isCurrentStatus = selected.status === s;
                       const base =
-                        "px-2 py-2 sm:px-3 sm:py-2.5 lg:px-4 lg:py-3 rounded-xl text-xs sm:text-sm font-semibold transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 border";
+                        "px-2 py-2 sm:px-3 sm:py-2.5 lg:px-4 lg:py-3 rounded-xl text-xs sm:text-sm font-semibold transition flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 border relative";
                       const active =
-                        "bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed";
+                        isCurrentStatus && s === "RETURNED"
+                          ? "bg-orange-200 text-orange-800 border-orange-300 cursor-not-allowed"
+                          : "bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed";
                       const ready =
                         "bg-white border-pink-200 text-pink-700 hover:bg-pink-100";
+                      const returnedBtn = s === "RETURNED" ? " cursor-not-allowed" : "";
                       const Icon = STATUS_UI[s].Icon;
                       return (
                         <button
                           key={s}
                           onClick={() => askStatusChange(s)}
                           disabled={disabled}
-                          className={`${base} ${disabled ? active : ready}`}
+                          className={`${base} ${disabled ? (s === "RETURNED" && !isCurrentStatus ? returnedBtn : active) : ready}`}
                         >
                           <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          {s === "RETURNED" && <Ban className="w-3 h-3 absolute top-1 right-1" />}
                           <span className="text-[10px] sm:text-xs lg:text-sm">
                             {STATUS_UI[s].label}
                           </span>
@@ -621,7 +805,15 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Delete order */}
-                <div className="flex items-center justify-end">
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    onClick={openReturnModal}
+                    disabled={selected.status === "RETURNED"}
+                    className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-100 font-semibold transition text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    Process Return
+                  </button>
                   <button
                     onClick={() => setPendingDelete(selected._id)}
                     className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-red-50 text-red-700 hover:bg-red-100 border border-red-100 font-semibold transition text-xs sm:text-sm"
@@ -673,6 +865,111 @@ export default function OrdersPage() {
               onCancel={() => setPendingDelete(null)}
               onConfirm={confirmDelete}
             />
+          </div>
+        )}
+
+        {/* Return Modal */}
+        {showReturnModal && selected && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 border border-pink-100 max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-pink-100 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-2xl z-10">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Process Return</h2>
+                <button onClick={() => setShowReturnModal(false)} className="p-2 hover:bg-pink-50 rounded-xl transition">
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+
+              <div className="p-4 sm:p-6 space-y-4">
+                {/* Return Reason */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Return Reason *</label>
+                  <select
+                    value={returnReason}
+                    onChange={(e) => setReturnReason(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                    required
+                  >
+                    <option value="">Select reason</option>
+                    <option value="Defective product">Defective product</option>
+                    <option value="Wrong item sent">Wrong item sent</option>
+                    <option value="Customer changed mind">Customer changed mind</option>
+                    <option value="Damaged in shipping">Damaged in shipping</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Order Items */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-bold text-gray-800">Order Items:</h3>
+                    <button
+                      onClick={addAllItems}
+                      className="px-3 py-1.5 rounded-lg bg-pink-600 text-white text-xs font-semibold hover:bg-pink-700 transition"
+                    >
+                      Return All
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {selected.lines.map((line, idx) => (
+                      <ReturnLineItem 
+                        key={idx} 
+                        line={line} 
+                        onAdd={(title, image) => addReturnItem(line.productId, title, line.qty, image)}
+                        disabled={returnItems.some(r => r.productId === line.productId)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Return Items */}
+                {returnItems.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-800 mb-3">Items to Return:</h3>
+                    <div className="space-y-3">
+                      {returnItems.map((item, idx) => (
+                        <ReturnItemDisplay
+                          key={idx}
+                          item={item}
+                          index={idx}
+                          onUpdate={updateReturnItem}
+                          onRemove={removeReturnItem}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Additional Notes (Optional)</label>
+                  <textarea
+                    value={returnNotes}
+                    onChange={(e) => setReturnNotes(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
+                    rows={3}
+                    placeholder="Enter any additional notes..."
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowReturnModal(false)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-pink-200 text-gray-700 font-medium hover:bg-pink-50 transition text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitReturn}
+                    disabled={returnItems.length === 0 || !returnReason.trim() || isProcessingReturn}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-pink-600 text-white font-semibold hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 transition text-sm"
+                  >
+                    {isProcessingReturn && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Process Return
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

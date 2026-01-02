@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Package,
   Search,
@@ -13,6 +14,7 @@ import {
   History,
   Download,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
 import Image from "next/image";
 import { toast, Toaster } from "react-hot-toast";
@@ -38,6 +40,7 @@ type Product = {
 type StockFilter = "all" | "low" | "out" | "good";
 
 export default function InventoryPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
@@ -111,53 +114,68 @@ export default function InventoryPage() {
       <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-600 flex items-center gap-3">
-              <Package className="w-10 h-10 text-pink-500" />
-              Inventory Management
+          <div className="mb-4 sm:mb-8">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </button>
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-600 flex items-center gap-2 sm:gap-3">
+              <Package className="w-6 h-6 sm:w-10 sm:h-10 text-pink-500" />
+              <span>Inventory Management</span>
             </h1>
-            <p className="text-pink-700/70 font-medium mt-2">Centralized stock control & monitoring</p>
+            <p className="text-pink-700/70 font-medium mt-1 sm:mt-2 text-xs sm:text-base">Centralized stock control & monitoring</p>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-pink-100 p-3 sm:p-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-2">
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">Total Products</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats.total}</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <div className="bg-white rounded-lg sm:rounded-xl border border-pink-100 p-2 sm:p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Total Products</p>
+                  <p className="text-base sm:text-2xl font-bold text-gray-900 leading-none">{stats.total}</p>
                 </div>
-                <Package className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500 opacity-20" />
+                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                  <Package className="w-5 h-5 sm:w-7 sm:h-7 text-blue-500 opacity-30" />
+                </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-red-100 p-3 sm:p-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-2">
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">Out of Stock</p>
-                  <p className="text-xl sm:text-2xl font-bold text-red-600">{stats.outOfStock}</p>
+            <div className="bg-white rounded-lg sm:rounded-xl border border-red-100 p-2 sm:p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Out of Stock</p>
+                  <p className="text-base sm:text-2xl font-bold text-red-600 leading-none">{stats.outOfStock}</p>
                 </div>
-                <AlertTriangle className="w-8 h-8 sm:w-10 sm:h-10 text-red-500 opacity-20" />
+                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 sm:w-7 sm:h-7 text-red-500 opacity-30" />
+                </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-yellow-100 p-3 sm:p-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-2">
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">Low Stock</p>
-                  <p className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.lowStock}</p>
+            <div className="bg-white rounded-lg sm:rounded-xl border border-yellow-100 p-2 sm:p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Low Stock</p>
+                  <p className="text-base sm:text-2xl font-bold text-yellow-600 leading-none">{stats.lowStock}</p>
                 </div>
-                <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-500 opacity-20" />
+                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-yellow-500 opacity-30" />
+                </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-green-100 p-3 sm:p-4 shadow-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-2">
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">Total Value</p>
-                  <p className="text-xl sm:text-2xl font-bold text-green-600">৳{stats.totalValue.toFixed(0)}</p>
+            <div className="bg-white rounded-lg sm:rounded-xl border border-green-100 p-2 sm:p-4 shadow-sm">
+              <div className="flex items-center justify-between gap-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Total Value</p>
+                  <p className="text-sm sm:text-2xl font-bold text-green-600 leading-none truncate">৳{(stats.totalValue/1000).toFixed(0)}k</p>
                 </div>
-                <TrendingUp className="w-8 h-8 sm:w-10 sm:h-10 text-green-500 opacity-20" />
+                <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-green-500 opacity-30" />
+                </div>
               </div>
             </div>
           </div>

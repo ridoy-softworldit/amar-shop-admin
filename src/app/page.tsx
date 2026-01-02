@@ -1,7 +1,17 @@
+"use client";
 import Link from "next/link";
-export const dynamic = "force-dynamic";
+import { useListOrdersQuery } from "@/services/orders.api";
+import { useListProductsQuery } from "@/services/products.api";
 
 export default function Home() {
+  const { data: ordersData } = useListOrdersQuery({ limit: 1 });
+  const { data: productsData } = useListProductsQuery({});
+
+  const totalOrders = ordersData?.data?.total || 0;
+  const totalProducts = productsData?.data?.total || productsData?.data?.items?.length || 0;
+  const orders = ordersData?.data?.items || [];
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.totals?.grandTotal || 0), 0);
+  const uniqueCustomers = new Set(orders.map(o => o.customer?.email)).size;
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 relative overflow-hidden">
       {/* Animated Background Elements */}
@@ -37,15 +47,13 @@ export default function Home() {
             <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-2 animate-slide-up animation-delay-200">
               Welcome to your admin panel
             </p>
-            <p className="text-xs sm:text-sm text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 font-medium animate-slide-up animation-delay-300">
-              ✨ Manage your beauty empire with elegance
-            </p>
+           
           </div>
 
           {/* Feature Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto mb-8 sm:mb-12">
             {/* Users Card */}
-            <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-5 sm:p-6 border border-pink-100 transform hover:-translate-y-2 transition-all duration-300 animate-slide-up animation-delay-400">
+            <Link href="/orders" className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-5 sm:p-6 border border-pink-100 transform hover:-translate-y-2 transition-all duration-300 animate-slide-up animation-delay-400 cursor-pointer">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#167389] to-[#167389] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <svg
                   className="w-6 h-6 sm:w-7 sm:h-7 text-white"
@@ -62,15 +70,15 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg sm:text-xl font-semibold text-pink-700 mb-2 group-hover:text-pink-600 transition-colors">
-                Users
+                All Orders
               </h3>
               <p className="text-sm sm:text-base text-gray-600">
-                Manage your customers and team members
+                Manage your Orders
               </p>
-            </div>
+            </Link>
 
             {/* Products Card */}
-            <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-5 sm:p-6 border border-rose-100 transform hover:-translate-y-2 transition-all duration-300 animate-slide-up animation-delay-600">
+            <Link href="/products" className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-5 sm:p-6 border border-rose-100 transform hover:-translate-y-2 transition-all duration-300 animate-slide-up animation-delay-600 cursor-pointer">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#167389] to-[#167389] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <svg
                   className="w-6 h-6 sm:w-7 sm:h-7 text-white"
@@ -87,15 +95,15 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-lg sm:text-xl font-semibold text-rose-700 mb-2 group-hover:text-rose-600 transition-colors">
-                Products
+                All Products
               </h3>
               <p className="text-sm sm:text-base text-gray-600">
-                Manage your beauty & cosmetics catalog
+                Manage your products catalog
               </p>
-            </div>
+            </Link>
 
             {/* Analytics Card */}
-            <div className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-5 sm:p-6 border border-purple-100 transform hover:-translate-y-2 transition-all duration-300 animate-slide-up animation-delay-800 sm:col-span-2 lg:col-span-1">
+            <Link href="/dashboard" className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-5 sm:p-6 border border-purple-100 transform hover:-translate-y-2 transition-all duration-300 animate-slide-up animation-delay-800 sm:col-span-2 lg:col-span-1 cursor-pointer">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#167389] to-[#167389] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-md">
                 <svg
                   className="w-6 h-6 sm:w-7 sm:h-7 text-white"
@@ -117,7 +125,7 @@ export default function Home() {
               <p className="text-sm sm:text-base text-gray-600">
                 Track sales performance and insights
               </p>
-            </div>
+            </Link>
           </div>
 
           {/* Call to Action Button */}
@@ -140,31 +148,31 @@ export default function Home() {
             </button>
           </Link>
 
-          {/* Decorative Stats */}
+          {/* Dynamic Stats */}
           <div className="mt-12 sm:mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 max-w-4xl mx-auto animate-fade-in animation-delay-1200">
             <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-pink-100 hover:border-pink-300 transition-colors">
               <div className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-rose-600 mb-1">
-                500+
+                {totalProducts}+
               </div>
               <div className="text-xs sm:text-sm text-gray-600">Products</div>
             </div>
             <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-rose-100 hover:border-rose-300 transition-colors">
               <div className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 to-pink-600 mb-1">
-                1,200+
+                {uniqueCustomers}+
               </div>
               <div className="text-xs sm:text-sm text-gray-600">Customers</div>
             </div>
             <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-purple-100 hover:border-purple-300 transition-colors">
               <div className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-1">
-                2,500+
+                {totalOrders}+
               </div>
               <div className="text-xs sm:text-sm text-gray-600">Orders</div>
             </div>
             <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-pink-100 hover:border-pink-300 transition-colors">
               <div className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600 mb-1">
-                98%
+                ৳{totalRevenue.toLocaleString()}
               </div>
-              <div className="text-xs sm:text-sm text-gray-600">Satisfied</div>
+              <div className="text-xs sm:text-sm text-gray-600">Revenue</div>
             </div>
           </div>
         </div>

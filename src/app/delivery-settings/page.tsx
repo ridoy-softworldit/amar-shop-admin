@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useGetDeliverySettingsQuery, useUpdateDeliverySettingsMutation } from "@/services/delivery.api";
-import { Package, Truck, Info } from "lucide-react";
+import { Package, Truck, Info, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import Page from "@/components/Page";
 
 export default function DeliverySettingsPage() {
+  const router = useRouter();
   const { data, isLoading } = useGetDeliverySettingsQuery();
   const [updateSettings, { isLoading: isUpdating }] = useUpdateDeliverySettingsMutation();
 
@@ -60,6 +62,13 @@ export default function DeliverySettingsPage() {
 
   return (
     <Page title="Delivery Settings">
+      <button
+        onClick={() => router.push("/dashboard")}
+        className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Dashboard</span>
+      </button>
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center gap-3 mb-6">

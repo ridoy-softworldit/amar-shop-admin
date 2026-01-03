@@ -23,11 +23,13 @@ import {
   DollarSign,
   Users,
   PackageX,
+  Bell,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import NotificationDropdown from "@/components/NotificationDropdown";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -42,6 +44,7 @@ const NAV = [
   { href: "/brands", label: "Brands", icon: Tag },
   { href: "/banners", label: "Home Banners", icon: ImageIcon },
   { href: "/delivery-settings", label: "Delivery Charge", icon: Truck },
+  { href: "/notifications", label: "Notifications", icon: Bell },
 ];
 
 export default function Topbar() {
@@ -235,6 +238,7 @@ export default function Topbar() {
 
             {/* Mobile Right Actions */}
             <div className="flex sm:hidden items-center gap-1 ml-auto">
+              <NotificationDropdown />
               <Link href="/orders" className="flex items-center gap-1 px-2 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-100 transition-all text-xs" title="Orders">
                 <ClipboardList className="w-3 h-3" />
                 <span>Orders</span>
@@ -256,6 +260,7 @@ export default function Topbar() {
 
             {/* Desktop Hotline & Logout */}
             <div className="hidden lg:flex items-center gap-2">
+              <NotificationDropdown />
               <a
                 title="Call us"
                 href={`tel:${hotline}`}
@@ -343,8 +348,9 @@ export default function Topbar() {
 
       {/* Mobile Navigation Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-pink-100 bg-white">
+        <div className="lg:hidden border-t border-pink-100 bg-white max-h-[90vh] overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 py-4 space-y-2">
+            
             {NAV.map((n) => {
               const Icon = n.icon;
               const isActive = pathname === n.href;

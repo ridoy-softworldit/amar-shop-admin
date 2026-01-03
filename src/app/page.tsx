@@ -13,7 +13,7 @@ export default function Home() {
   const totalRevenue = orders.reduce((sum, o) => sum + (o.totals?.grandTotal || 0), 0);
   const uniqueCustomers = new Set(orders.map(o => o.customer?.email)).size;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 relative overflow-hidden mt-16">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-64 h-64 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob" />

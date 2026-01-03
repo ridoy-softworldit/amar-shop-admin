@@ -12,6 +12,7 @@ import { deliveryApi } from "@/services/delivery.api";
 import { manufacturersApi } from "@/services/manufacturers.api";
 import { returnsApi } from "@/services/returns.api";
 import { stockFilterApi } from "@/services/stock-filter.api";
+import { notificationApi } from "@/services/notifications.api";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     [manufacturersApi.reducerPath]: manufacturersApi.reducer,
     [returnsApi.reducerPath]: returnsApi.reducer,
     [stockFilterApi.reducerPath]: stockFilterApi.reducer,
+    [notificationApi.reducerPath]: notificationApi.reducer,
   },
   middleware: (getDefault) =>
     getDefault().concat(
@@ -42,7 +44,8 @@ export const store = configureStore({
       deliveryApi.middleware,
       manufacturersApi.middleware,
       returnsApi.middleware,
-      stockFilterApi.middleware
+      stockFilterApi.middleware,
+      notificationApi.middleware
     ),
   devTools: process.env.NODE_ENV !== "production",
 });

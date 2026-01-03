@@ -11,3 +11,4 @@ export type Paginated<T> = {
 }
 
 export * from './banner';
+export * from './notification';

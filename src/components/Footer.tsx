@@ -163,7 +163,7 @@ export default function Footer() {
                 Admin Panel Hours
               </p>
               <p className="text-sm text-white">24/7 System Access</p>
-              <p className="text-xs text-white mt-1">Support: 8 AM - 10 PM</p>
+              <p className="text-xs text-white mt-1">Support: 9 AM - 12 PM</p>
             </div>
           </div>
         </div>

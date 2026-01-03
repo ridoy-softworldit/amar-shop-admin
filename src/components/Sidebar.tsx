@@ -24,6 +24,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import NotificationSidebarLink from "@/components/NotificationSidebarLink";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -110,7 +111,8 @@ export default function Sidebar() {
 
         {/* Logout */}
         {token && (
-          <div className="px-4 py-4 border-t border-gray-200">
+          <div className="px-4 py-4 border-t border-gray-200 space-y-1">
+            <NotificationSidebarLink isCollapsed={isCollapsed} />
             <button
               onClick={handleLogout}
               title={isCollapsed ? "Logout" : ""}

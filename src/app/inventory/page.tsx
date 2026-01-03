@@ -6,21 +6,21 @@ import { useRouter } from "next/navigation";
 import {
   Package,
   Search,
-  AlertTriangle,
   TrendingUp,
-  Filter,
   Plus,
   Minus,
   History,
-  Download,
   RefreshCw,
   ArrowLeft,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import { toast, Toaster } from "react-hot-toast";
 import { useListProductsQuery } from "@/services/products.api";
 import { useListCategoriesQuery } from "@/services/categories.api";
 import { useAddStockMutation, useRemoveStockMutation } from "@/services/inventory.api";
+import { useGetStockOverviewQuery } from "@/services/inventory-stats.api";
+import { useGetOutOfStockProductsQuery, useGetLowStockProductsQuery } from "@/services/stock-filter.api";
 import type { AddStockRequest, RemoveStockRequest } from "@/types/inventory";
 
 type Product = {
@@ -46,8 +46,16 @@ export default function InventoryPage() {
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalType, setModalType] = useState<"add" | "remove" | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: productsData, isLoading, refetch } = useListProductsQuery({});
+  const { data: productsData, isLoading, refetch } = useListProductsQuery({
+    page: currentPage,
+    q: searchQuery,
+    category: categoryFilter,
+  });
+  const { data: stockOverview } = useGetStockOverviewQuery({ threshold: 10 });
+  const { data: outOfStockData } = useGetOutOfStockProductsQuery();
+  const { data: lowStockData } = useGetLowStockProductsQuery({ threshold: 10 });
   const { data: categoriesData } = useListCategoriesQuery();
   const [addStock, { isLoading: adding }] = useAddStockMutation();
   const [removeStock, { isLoading: removing }] = useRemoveStockMutation();
@@ -57,6 +65,13 @@ export default function InventoryPage() {
     [productsData]
   );
 
+  const pagination = productsData?.data ? {
+    total: productsData.data.total || 0,
+    page: productsData.data.page || 1,
+    pages: productsData.data.pages || 1,
+    limit: productsData.data.limit || 12
+  } : null;
+
   const categories = useMemo(
     () => (categoriesData?.data ?? categoriesData ?? []) as Array<{ _id: string; slug: string; name?: string; title?: string }>,
     [categoriesData]
@@ -64,6 +79,14 @@ export default function InventoryPage() {
 
   const filtered = useMemo(() => {
     let result = products;
+
+    // Use API data for out/low stock filters
+    if (stockFilter === "out" && outOfStockData?.data) {
+      return outOfStockData.data as Product[];
+    }
+    if (stockFilter === "low" && lowStockData?.data) {
+      return lowStockData.data as Product[];
+    }
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -79,25 +102,36 @@ export default function InventoryPage() {
       result = result.filter((p) => p.categorySlug === categoryFilter);
     }
 
-    if (stockFilter !== "all") {
-      result = result.filter((p) => {
-        if (stockFilter === "out") return p.stock === 0;
-        if (stockFilter === "low") return p.stock > 0 && p.stock <= 10;
-        if (stockFilter === "good") return p.stock > 10;
-        return true;
-      });
+    if (stockFilter === "good") {
+      result = result.filter((p) => p.stock > 10);
     }
 
     return result;
-  }, [products, searchQuery, categoryFilter, stockFilter]);
+  }, [products, searchQuery, categoryFilter, stockFilter, outOfStockData, lowStockData]);
 
   const stats = useMemo(() => {
+    if (stockOverview?.data) {
+      const total = stockOverview.data.totalProducts || 0;
+      const outOfStock = stockOverview.data.outOfStock || 0;
+      const lowStock = stockOverview.data.lowStock || 0;
+      const goodStock = total - outOfStock - lowStock;
+      console.log('Stock overview data:', stockOverview.data);
+      return {
+        total,
+        outOfStock,
+        lowStock,
+        goodStock,
+        totalValue: stockOverview.data.totalValue || products.reduce((sum, p) => sum + p.price * p.stock, 0)
+      };
+    }
+    // Fallback to current page stats if overview not available
     const total = products.length;
     const outOfStock = products.filter((p) => p.stock === 0).length;
     const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 10).length;
+    const goodStock = total - outOfStock - lowStock;
     const totalValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
-    return { total, outOfStock, lowStock, totalValue };
-  }, [products]);
+    return { total, outOfStock, lowStock, goodStock, totalValue };
+  }, [stockOverview, products]);
 
   const openStockModal = (product: Product, type: "add" | "remove") => {
     setSelectedProduct(product);
@@ -113,7 +147,7 @@ export default function InventoryPage() {
     <>
       <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
           <div className="mb-4 sm:mb-8">
             <button
               onClick={() => router.push("/dashboard")}
@@ -131,38 +165,38 @@ export default function InventoryPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
-            <div className="bg-white rounded-lg sm:rounded-xl border border-pink-100 p-2 sm:p-4 shadow-sm">
+            <div className="bg-white rounded-lg sm:rounded-xl border border-pink-100 p-2 sm:p-4 shadow-sm cursor-pointer hover:bg-blue-50 transition" onClick={() => setStockFilter("all")}>
               <div className="flex items-center justify-between gap-1">
                 <div className="min-w-0 flex-1">
                   <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Total Products</p>
                   <p className="text-base sm:text-2xl font-bold text-gray-900 leading-none">{stats.total}</p>
                 </div>
                 <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
-                  <Package className="w-5 h-5 sm:w-7 sm:h-7 text-blue-500 opacity-30" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg sm:rounded-xl border border-red-100 p-2 sm:p-4 shadow-sm">
+            <div className="bg-white rounded-lg sm:rounded-xl border border-red-100 p-2 sm:p-4 shadow-sm cursor-pointer hover:bg-red-50 transition" onClick={() => setStockFilter("out")}>
               <div className="flex items-center justify-between gap-1">
                 <div className="min-w-0 flex-1">
                   <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Out of Stock</p>
                   <p className="text-base sm:text-2xl font-bold text-red-600 leading-none">{stats.outOfStock}</p>
                 </div>
                 <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 sm:w-7 sm:h-7 text-red-500 opacity-30" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg sm:rounded-xl border border-yellow-100 p-2 sm:p-4 shadow-sm">
+            <div className="bg-white rounded-lg sm:rounded-xl border border-yellow-100 p-2 sm:p-4 shadow-sm cursor-pointer hover:bg-yellow-50 transition" onClick={() => setStockFilter("low")}>
               <div className="flex items-center justify-between gap-1">
                 <div className="min-w-0 flex-1">
                   <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Low Stock</p>
                   <p className="text-base sm:text-2xl font-bold text-yellow-600 leading-none">{stats.lowStock}</p>
                 </div>
                 <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-yellow-500 opacity-30" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" />
                 </div>
               </div>
             </div>
@@ -171,7 +205,7 @@ export default function InventoryPage() {
               <div className="flex items-center justify-between gap-1">
                 <div className="min-w-0 flex-1">
                   <p className="text-[9px] sm:text-xs text-gray-600 mb-0.5 sm:mb-1 truncate leading-tight">Total Value</p>
-                  <p className="text-sm sm:text-2xl font-bold text-green-600 leading-none truncate">৳{(stats.totalValue/1000).toFixed(0)}k</p>
+                  <p className="text-sm sm:text-2xl font-bold text-green-600 leading-none truncate">৳{stats.totalValue.toLocaleString()}</p>
                 </div>
                 <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-green-500 opacity-30" />
@@ -194,69 +228,71 @@ export default function InventoryPage() {
                 />
               </div>
 
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-4 py-3 rounded-xl border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition lg:w-64"
-              >
-                <option value="">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat._id} value={cat.slug}>
-                    {cat.name || cat.title}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 lg:items-center">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="px-4 py-3 rounded-xl border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition lg:w-64"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat.slug}>
+                      {cat.name || cat.title}
+                    </option>
+                  ))}
+                </select>
 
-              <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 flex-1">
+                  <button
+                    onClick={() => setStockFilter("all")}
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
+                      stockFilter === "all"
+                        ? "bg-cyan-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    All ({stats.total})
+                  </button>
+                  <button
+                    onClick={() => setStockFilter("out")}
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
+                      stockFilter === "out"
+                        ? "bg-red-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Out ({stats.outOfStock})
+                  </button>
+                  <button
+                    onClick={() => setStockFilter("low")}
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
+                      stockFilter === "low"
+                        ? "bg-yellow-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Low ({stats.lowStock})
+                  </button>
+                  <button
+                    onClick={() => setStockFilter("good")}
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
+                      stockFilter === "good"
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Good ({stats.goodStock})
+                  </button>
+                </div>
+
                 <button
-                  onClick={() => setStockFilter("all")}
-                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
-                    stockFilter === "all"
-                      ? "bg-cyan-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  onClick={() => refetch()}
+                  className="px-3 py-2 rounded-lg bg-pink-50 text-pink-700 hover:bg-pink-100 transition flex items-center justify-center gap-2 text-xs font-medium"
                 >
-                  All
-                </button>
-                <button
-                  onClick={() => setStockFilter("out")}
-                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
-                    stockFilter === "out"
-                      ? "bg-red-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  Out
-                </button>
-                <button
-                  onClick={() => setStockFilter("low")}
-                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
-                    stockFilter === "low"
-                      ? "bg-yellow-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  Low
-                </button>
-                <button
-                  onClick={() => setStockFilter("good")}
-                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition ${
-                    stockFilter === "good"
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  Good
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh</span>
                 </button>
               </div>
-
-              <button
-                onClick={() => refetch()}
-                className="w-full sm:w-auto px-4 py-2 rounded-lg sm:rounded-xl bg-pink-50 text-pink-700 hover:bg-pink-100 transition flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="sm:hidden">Refresh</span>
-              </button>
             </div>
           </div>
 
@@ -272,122 +308,72 @@ export default function InventoryPage() {
             </div>
           ) : (
             <div className="bg-white rounded-xl sm:rounded-2xl border border-pink-100 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gradient-to-r from-pink-50 to-purple-50 border-b border-pink-100">
                     <tr>
-                      <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-gray-700">Product</th>
-                      <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold text-gray-700">Brand</th>
-                      <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700">Stock</th>
-                      <th className="hidden sm:table-cell px-4 py-3 text-center text-xs font-semibold text-gray-700">Status</th>
-                      <th className="hidden lg:table-cell px-4 py-3 text-right text-xs font-semibold text-gray-700">Price</th>
-                      <th className="hidden lg:table-cell px-4 py-3 text-right text-xs font-semibold text-gray-700">Value</th>
-                      <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-gray-700">Actions</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Product</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700">Brand</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">Stock</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">Status</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">Price</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">Value</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-pink-50">
                     {filtered.map((product) => {
-                      const stockStatus =
-                        product.stock === 0 ? "out" : product.stock <= 10 ? "low" : "good";
+                      const stockStatus = product.stock === 0 ? "out" : product.stock <= 10 ? "low" : "good";
                       const imgSrc = product.images?.[0] || product.image;
 
                       return (
                         <tr key={product._id} className="hover:bg-pink-50/50 transition">
-                          <td className="px-2 sm:px-4 py-2 sm:py-3">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                                 {imgSrc ? (
-                                  <Image
-                                    src={imgSrc}
-                                    alt={product.title}
-                                    width={48}
-                                    height={48}
-                                    className="w-full h-full object-cover"
-                                  />
+                                  <Image src={imgSrc} alt={product.title} width={48} height={48} className="w-full h-full object-cover" />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
-                                    <Package className="w-5 h-5 sm:w-6 sm:h-6 text-gray-300" />
+                                    <Package className="w-6 h-6 text-gray-300" />
                                   </div>
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-xs sm:text-sm font-semibold text-gray-900 truncate">
-                                  {product.title}
-                                </p>
-                                <p className="text-xs text-gray-500 truncate md:hidden">{product.brand || "-"}</p>
+                                <p className="text-sm font-semibold text-gray-900 truncate">{product.title}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="hidden md:table-cell px-4 py-3">
+                          <td className="px-4 py-3">
                             <span className="text-sm text-gray-700">{product.brand || "-"}</span>
                           </td>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
-                            <span className="text-base sm:text-lg font-bold text-gray-900">{product.stock}</span>
-                            <span
-                              className={`sm:hidden block mt-1 text-xs font-bold ${
-                                stockStatus === "out"
-                                  ? "text-red-700"
-                                  : stockStatus === "low"
-                                  ? "text-yellow-700"
-                                  : "text-green-700"
-                              }`}
-                            >
+                          <td className="px-4 py-3 text-center">
+                            <span className="text-lg font-bold text-gray-900">{product.stock}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
+                              stockStatus === "out" ? "bg-red-100 text-red-700" : stockStatus === "low" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                            }`}>
                               {stockStatus === "out" ? "Out" : stockStatus === "low" ? "Low" : "Good"}
                             </span>
                           </td>
-                          <td className="hidden sm:table-cell px-4 py-3 text-center">
-                            <span
-                              className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
-                                stockStatus === "out"
-                                  ? "bg-red-100 text-red-700"
-                                  : stockStatus === "low"
-                                  ? "bg-yellow-100 text-yellow-700"
-                                  : "bg-green-100 text-green-700"
-                              }`}
-                            >
-                              {stockStatus === "out"
-                                ? "Out"
-                                : stockStatus === "low"
-                                ? "Low"
-                                : "Good"}
-                            </span>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-sm font-semibold text-gray-900">৳{product.price}</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 py-3 text-right">
-                            <span className="text-sm font-semibold text-gray-900">
-                              ৳{product.price}
-                            </span>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-sm font-semibold text-gray-900">৳{(product.price * product.stock).toFixed(0)}</span>
                           </td>
-                          <td className="hidden lg:table-cell px-4 py-3 text-right">
-                            <span className="text-sm font-semibold text-gray-900">
-                              ৳{(product.price * product.stock).toFixed(0)}
-                            </span>
-                          </td>
-                          <td className="px-2 sm:px-4 py-2 sm:py-3">
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
-                              <div className="flex gap-1 sm:gap-2">
-                                <button
-                                  onClick={() => openStockModal(product, "add")}
-                                  className="p-1.5 sm:p-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition"
-                                  title="Add Stock"
-                                >
-                                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                </button>
-                                <button
-                                  onClick={() => openStockModal(product, "remove")}
-                                  className="p-1.5 sm:p-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition disabled:opacity-50"
-                                  disabled={product.stock === 0}
-                                  title="Remove Stock"
-                                >
-                                  <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                </button>
-                              </div>
-                              <button
-                                onClick={() => window.location.href = `/products/${product._id}/inventory`}
-                                className="flex items-center justify-center gap-1.5 px-2 py-1.5 sm:p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition w-full sm:w-auto text-xs sm:text-sm font-medium"
-                                title="View History"
-                              >
-                                <span className="sm:hidden">History</span>
-                                <History className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-2">
+                              <button onClick={() => openStockModal(product, "add")} className="p-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition" title="Add Stock">
+                                <Plus className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => openStockModal(product, "remove")} className="p-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition disabled:opacity-50" disabled={product.stock === 0} title="Remove Stock">
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => window.location.href = `/products/${product._id}/inventory`} className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition" title="View History">
+                                <History className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -397,10 +383,126 @@ export default function InventoryPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-pink-50">
+                {filtered.map((product) => {
+                  const stockStatus = product.stock === 0 ? "out" : product.stock <= 10 ? "low" : "good";
+                  const imgSrc = product.images?.[0] || product.image;
+
+                  return (
+                    <div key={product._id} className="p-4 hover:bg-pink-50/50 transition">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          {imgSrc ? (
+                            <Image src={imgSrc} alt={product.title} width={64} height={64} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-8 h-8 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-semibold text-gray-900 mb-1">{product.title}</h3>
+                          <p className="text-xs text-gray-500 mb-2">{product.brand || "No brand"}</p>
+                          <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-600">Stock:</span>
+                              <span className="font-bold text-gray-900">{product.stock}</span>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full font-bold ${
+                              stockStatus === "out" ? "bg-red-100 text-red-700" : stockStatus === "low" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                            }`}>
+                              {stockStatus === "out" ? "Out" : stockStatus === "low" ? "Low" : "Good"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-xs text-gray-600">
+                          <span>Price: </span>
+                          <span className="font-semibold text-gray-900">৳{product.price}</span>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          <span>Value: </span>
+                          <span className="font-semibold text-gray-900">৳{(product.price * product.stock).toFixed(0)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button onClick={() => openStockModal(product, "add")} className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition text-xs font-medium">
+                          <Plus className="w-3 h-3" />
+                          Add
+                        </button>
+                        <button onClick={() => openStockModal(product, "remove")} className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition disabled:opacity-50 text-xs font-medium" disabled={product.stock === 0}>
+                          <Minus className="w-3 h-3" />
+                          Remove
+                        </button>
+                        <button onClick={() => window.location.href = `/products/${product._id}/inventory`} className="flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition text-xs font-medium">
+                          <History className="w-3 h-3" />
+                          History
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.pages > 1 && (
+        <div className="px-4 sm:px-6 lg:px-8 mt-6">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-pink-200 text-gray-700 hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Prev
+              </button>
+              
+              <div className="flex gap-0.5 sm:gap-1">
+                {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                  const start = Math.max(1, currentPage - 2);
+                  const page = start + i;
+                  if (page > pagination.pages) return null;
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition ${
+                        currentPage === page
+                          ? "bg-[#167389] text-white"
+                          : "border border-pink-200 text-gray-700 hover:bg-pink-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                }).filter(Boolean)}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
+                disabled={currentPage === pagination.pages}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-pink-200 text-gray-700 hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Next
+              </button>
+            </div>
+            
+            <div className="text-xs sm:text-sm text-gray-600">
+              Page {currentPage} of {pagination.pages}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stock Modal */}
       {selectedProduct && modalType && (
@@ -411,6 +513,7 @@ export default function InventoryPage() {
           addStock={addStock}
           removeStock={removeStock}
           isLoading={adding || removing}
+          refetch={refetch}
         />
       )}
     </>
@@ -424,6 +527,7 @@ function StockModal({
   addStock,
   removeStock,
   isLoading,
+  refetch,
 }: {
   product: Product;
   type: "add" | "remove";
@@ -431,6 +535,7 @@ function StockModal({
   addStock: any;
   removeStock: any;
   isLoading: boolean;
+  refetch: () => void;
 }) {
   const [quantity, setQuantity] = useState(0);
   const [stockType, setStockType] = useState<string>(
@@ -443,6 +548,11 @@ function StockModal({
     e.preventDefault();
     if (quantity <= 0) {
       toast.error("Quantity must be greater than 0");
+      return;
+    }
+    
+    if (type === "remove" && !reason.trim()) {
+      toast.error("Reason is required for stock removal");
       return;
     }
 
@@ -466,9 +576,17 @@ function StockModal({
         } as { productId: string } & RemoveStockRequest).unwrap();
         toast.success("Stock removed successfully");
       }
+      refetch();
       onClose();
-    } catch {
-      toast.error("Operation failed");
+    } catch (error: any) {
+      if (error?.data?.errors && Array.isArray(error.data.errors)) {
+        const errorMessage = error.data.errors.map((err: any) => err.message).join(", ");
+        toast.error(errorMessage);
+      } else if (error?.data?.message) {
+        toast.error(error.data.message);
+      } else {
+        toast.error("Operation failed");
+      }
     }
   };
 
@@ -525,7 +643,7 @@ function StockModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Reference</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Reference (Optional)</label>
             <input
               type="text"
               value={reference}
@@ -536,13 +654,20 @@ function StockModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Reason</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Reason{type === "remove" ? " *" : " (optional)"}
+            </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition resize-none"
+              className={`w-full px-4 py-2 rounded-lg border-2 focus:ring-2 focus:ring-pink-100 transition resize-none ${
+                type === "remove" && !reason.trim()
+                  ? "border-red-300 focus:border-red-400"
+                  : "border-pink-100 focus:border-pink-400"
+              }`}
               rows={2}
               placeholder="Why are you making this change?"
+              required={type === "remove"}
             />
           </div>
 

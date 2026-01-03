@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import "./globals.css"; 
 import Providers from "./providers";
 import AppShell from "@/components/AppShell";
+import BackToTop from "@/components/BackToTop";
 import { Outfit } from "next/font/google"; //
 import Guard from "@/components/Guard";
 
@@ -28,6 +29,7 @@ export default function RootLayout({
           <Guard>
             <Providers>
               <AppShell>{children}</AppShell>
+              <BackToTop />
             </Providers>
           </Guard>
         </Suspense>

@@ -12,7 +12,7 @@ import {
 export type BannerImage = { url: string; publicId: string };
 
 export default function UploadBannerImages({
-  label = "Banner Images (Max 3)",
+  label = "Max 3 Banner Image - (16:9 ratio) 1280px*720px or 1920px*1080px",
   value,
   onChange,
   disabled,

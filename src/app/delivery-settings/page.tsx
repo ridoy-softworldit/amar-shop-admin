@@ -64,7 +64,7 @@ export default function DeliverySettingsPage() {
     <Page title="Delivery Settings">
       <button
         onClick={() => router.push("/dashboard")}
-        className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+        className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-teal-800 p-1 text-gray-700 hover:bg-pink-50 transition mt-4"
       >
         <ArrowLeft className="w-4 h-4" />
         <span>Back to Dashboard</span>
@@ -77,14 +77,13 @@ export default function DeliverySettingsPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">Delivery Configuration</h2>
-              <p className="text-sm text-gray-500">Manage delivery charges and free delivery threshold</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Free Delivery Threshold (BDT)
+                Free Delivery Threshold (BDT) If Order:
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -149,11 +148,11 @@ export default function DeliverySettingsPage() {
                 <div className="text-sm text-cyan-800">
                   <p className="font-semibold mb-1">Current Configuration:</p>
                   <p>
-                    Orders <span className="font-bold">≥ ৳{threshold}</span> get{" "}
+                    Orders more than<span className="font-bold">≥ ৳{threshold}</span> get{" "}
                     <span className="font-bold text-green-600">FREE delivery</span>.
                   </p>
                   <p>
-                    Orders below threshold will be charged{" "}
+                    Orders less than <span className="font-bold">≥ ৳{threshold}</span> need delivery charge{" "}
                     <span className="font-bold">৳{charge}</span>.
                   </p>
                 </div>

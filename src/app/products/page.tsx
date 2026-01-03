@@ -14,8 +14,6 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Sparkles,
-  Tag,
-  Store,
   PackageOpen,
   ArrowLeft,
 } from "lucide-react";
@@ -148,6 +146,7 @@ export default function ProductsPage() {
   const [subcategoryFilter, setSubcategoryFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // modal + edit state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -177,6 +176,7 @@ export default function ProductsPage() {
 
   // RTK Query
   const { data: productsData, isLoading, error, isFetching } = useListProductsQuery({ 
+    page: currentPage,
     q: searchQuery, 
     category: categoryFilter,
     startDate: startDate || undefined,
@@ -200,6 +200,17 @@ export default function ProductsPage() {
     productsData ??
     []) as Product[];
 
+  // Debug logging
+  console.log('Products API Response:', productsData);
+  console.log('Normalized products:', products);
+  console.log('API Error:', error);
+
+  const pagination = productsData?.data ? {
+    total: productsData.data.total || 0,
+    page: productsData.data.page || 1,
+    pages: productsData.data.pages || 1,
+    limit: productsData.data.limit || 12
+  } : null;
   const categories = (categoriesData?.data ?? categoriesData ?? []) as Array<{
     _id: string;
     slug: string;
@@ -439,12 +450,12 @@ export default function ProductsPage() {
       <Toaster position="top-right" />
 
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 mt-16">
           {/* Header */}
           <div className="mb-4 sm:mb-6 lg:mb-8">
             <button
               onClick={() => router.push("/dashboard")}
-              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-teal-800 p-1 text-gray-700 hover:bg-pink-50 transition"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Dashboard</span>
@@ -480,7 +491,7 @@ export default function ProductsPage() {
                   setCategoryFilter(e.target.value);
                   setSubcategoryFilter("");
                 }}
-                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition lg:w-64"
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition lg:w-48"
               >
                 <option value="">All Categories</option>
                 {categories.map((cat) => (
@@ -495,7 +506,7 @@ export default function ProductsPage() {
                 value={subcategoryFilter}
                 onChange={(e) => setSubcategoryFilter(e.target.value)}
                 disabled={!categoryFilter}
-                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition lg:w-64 disabled:bg-gray-100"
+                className="px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition lg:w-48 disabled:bg-gray-100"
               >
                 <option value="">All Subcategories</option>
                 {filterSubcategories.map((sub) => (
@@ -679,6 +690,99 @@ export default function ProductsPage() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination && pagination.pages > 1 && (
+          <div className="px-3 sm:px-4 lg:px-8 mt-6">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-pink-200 text-gray-700 hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Prev
+                </button>
+                
+                <div className="flex gap-0.5 sm:gap-1">
+                  {/* First page */}
+                  {currentPage > 3 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentPage(1)}
+                        className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+                      >
+                        1
+                      </button>
+                      {currentPage > 4 && <span className="px-1 text-gray-400">...</span>}
+                    </>
+                  )}
+                  
+                  {/* Current page range */}
+                  {Array.from({ length: Math.min(window.innerWidth < 640 ? 3 : 5, pagination.pages) }, (_, i) => {
+                    const start = Math.max(1, currentPage - Math.floor((window.innerWidth < 640 ? 3 : 5) / 2));
+                    const page = start + i;
+                    if (page > pagination.pages) return null;
+                    
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg transition ${
+                          currentPage === page
+                            ? "bg-[#167389] text-white"
+                            : "border border-pink-200 text-gray-700 hover:bg-pink-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  }).filter(Boolean)}
+                  
+                  {/* Last page */}
+                  {currentPage < pagination.pages - 2 && (
+                    <>
+                      {currentPage < pagination.pages - 3 && <span className="px-1 text-gray-400">...</span>}
+                      <button
+                        onClick={() => setCurrentPage(pagination.pages)}
+                        className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+                      >
+                        {pagination.pages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(pagination.pages, currentPage + 1))}
+                  disabled={currentPage === pagination.pages}
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-lg border border-pink-200 text-gray-700 hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Next
+                </button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm text-gray-600">
+                  Page {currentPage} of {pagination.pages}
+                </span>
+                <input
+                  type="number"
+                  min="1"
+                  max={pagination.pages}
+                  value={currentPage}
+                  onChange={(e) => {
+                    const page = parseInt(e.target.value);
+                    if (page >= 1 && page <= pagination.pages) {
+                      setCurrentPage(page);
+                    }
+                  }}
+                  className="w-12 sm:w-16 px-1 sm:px-2 py-1 text-xs sm:text-sm border border-pink-200 rounded text-center focus:outline-none focus:ring-1 focus:ring-pink-300"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Create / Update Modal */}
         {isModalOpen && (

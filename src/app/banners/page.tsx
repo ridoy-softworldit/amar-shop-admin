@@ -193,9 +193,9 @@ export default function BannersPage() {
     <>
       <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
           {/* Header */}
-          <div className="mb-8 text-center sm:text-left">
+          <div className="mb-8 sm:text-left">
             <button
               onClick={() => router.push("/dashboard")}
               className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
@@ -203,12 +203,12 @@ export default function BannersPage() {
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Dashboard</span>
             </button>
-            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-600 flex justify-center sm:justify-start items-center gap-3 flex-wrap">
+            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-600 flex justify-center sm:justify-start items-center gap-3">
               <ImageIcon className="w-8 sm:w-10 h-8 sm:h-10 text-pink-500" />
-              Banner Management
+              Homepage Banner Slider
             </h1>
             <p className="text-pink-700/70 font-medium mt-2 text-sm sm:text-base">
-              Manage all promotional banners seamlessly
+              Manage Homepage Banner slider only (Upload 1200 * 380 px Image).
             </p>
           </div>
 

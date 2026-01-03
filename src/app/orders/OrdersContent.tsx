@@ -422,7 +422,7 @@ export default function OrdersPage() {
       <Toaster position="top-right" />
 
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 print:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 mt-16">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
             <button

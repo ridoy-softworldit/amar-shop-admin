@@ -58,9 +58,9 @@ export default function CustomersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 mt-16">
         <div className="mb-6 sm:mb-8">
-          <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-[#167389] mb-4 transition-colors">
+          <Link href="/dashboard" className="inline-flex border border-teal-800 rounded-lg p-1 items-center gap-2 text-gray-600 hover:text-[#167389] mb-4 transition-colors">
             <ArrowLeft className="w-5 h-5" />
             <span className="font-semibold">Back to Dashboard</span>
           </Link>
@@ -87,7 +87,7 @@ export default function CustomersPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6">
             <div className="flex items-center justify-center mb-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-md">
@@ -95,19 +95,9 @@ export default function CustomersPage() {
               </div>
             </div>
             <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1 text-center">Total Customers</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-800 text-center">{totalCustomers}</p>
+            <p className="text-lg sm:text-3xl font-bold text-gray-800 text-center">{totalCustomers}</p>
           </div>
-
-          <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6">
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-md">
-                <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-white" strokeWidth={2.5} />
-              </div>
-            </div>
-            <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1 text-center">Total Revenue</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-800 text-center">৳{totalRevenue.toLocaleString()}</p>
-          </div>
-
+          
           <div className="bg-white rounded-2xl shadow-lg p-5 sm:p-6">
             <div className="flex items-center justify-center mb-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md">
@@ -115,7 +105,7 @@ export default function CustomersPage() {
               </div>
             </div>
             <h3 className="text-gray-600 text-xs sm:text-sm font-medium mb-1 text-center">Avg Order Value</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-gray-800 text-center">৳{avgOrderValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+            <p className="text-lg sm:text-3xl font-bold text-gray-800 text-center">৳{avgOrderValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
           </div>
         </div>
 
@@ -161,7 +151,7 @@ export default function CustomersPage() {
                         {customer.orders}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right font-bold text-emerald-600">
+                    <td className="py-4 px-4 text-right font-bold text-emerald-600 text-sm">
                       ৳{customer.totalSpent.toLocaleString()}
                     </td>
                   </tr>

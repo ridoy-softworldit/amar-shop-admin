@@ -96,31 +96,47 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 mt-6">
         {/* Page Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389] to-[#167389] mb-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389] to-[#167389] mt-16 mb-2">
             Dashboard Overview
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
-            Welcome back! Here is what is happening with your beauty store
-            today.
+            Welcome back! Here is what is happening with Store
           </p>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-wrap gap-2 mt-3">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-4 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
-              placeholder="Start Date"
+              className="px-3 py-1.5 text-sm rounded-lg border border-pink-200 focus:outline-none focus:ring-1 focus:ring-pink-300 focus:border-pink-400 transition"
             />
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-4 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-400 transition"
-              placeholder="End Date"
+              className="px-3 py-1.5 text-sm rounded-lg border border-pink-200 focus:outline-none focus:ring-1 focus:ring-pink-300 focus:border-pink-400 transition"
             />
+            <button
+              onClick={() => {
+                const today = new Date().toISOString().split('T')[0];
+                setStartDate(today);
+                setEndDate(today);
+              }}
+              className="px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            >
+              Today
+            </button>
+            <button
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+            >
+              Clear
+            </button>
           </div>
         </div>
 
@@ -133,8 +149,8 @@ export default function DashboardPage() {
                 <DollarSign className="w-8 h-8 text-emerald-600" />
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Total Revenue</h3>
-              <p className="text-2xl font-bold text-emerald-600">৳{totalRevenue.toLocaleString()}</p>
+              <h3 className="font-medium text-gray-800 mb-1 text-sm">Total Revenue</h3>
+              <p className="text-lg font-bold text-emerald-600">৳{totalRevenue.toLocaleString()}</p>
             </Link>
 
             <Link href="/products" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-pink-300">
@@ -142,8 +158,8 @@ export default function DashboardPage() {
                 <Package className="w-8 h-8 text-pink-600" />
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">All Products</h3>
-              <p className="text-2xl font-bold text-pink-600">{totalProducts}</p>
+              <h3 className="font-medium text-gray-800 mb-1 text-sm">All Products</h3>
+              <p className="text-lg font-bold text-pink-600">{totalProducts}</p>
             </Link>
 
             <Link href="/orders" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-purple-300">
@@ -151,8 +167,8 @@ export default function DashboardPage() {
                 <ShoppingCart className="w-8 h-8 text-purple-600" />
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Orders</h3>
-              <p className="text-2xl font-bold text-purple-600">{totalOrders}</p>
+              <h3 className="font-medium text-gray-800 mb-1 text-sm">Orders</h3>
+              <p className="text-lg font-bold text-purple-600">{totalOrders}</p>
             </Link>
 
             <Link href="/inventory" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-rose-300">
@@ -160,8 +176,8 @@ export default function DashboardPage() {
                 <Archive className="w-8 h-8 text-rose-600" />
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-rose-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Stock Manage</h3>
-              <p className="text-2xl font-bold text-rose-600">{totalProducts}</p>
+              <h3 className="font-medium text-gray-800 mb-1 text-sm">Stock Manage</h3>
+              <p className="text-lg font-bold text-rose-600">{totalProducts}</p>
             </Link>
 
             <Link href="/categories" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-indigo-300">
@@ -169,8 +185,8 @@ export default function DashboardPage() {
                 <Layers className="w-8 h-8 text-indigo-600" />
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Categories</h3>
-              <p className="text-2xl font-bold text-indigo-600">{totalCategories}</p>
+              <h3 className="font-medium text-gray-800 mb-1 text-sm">Categories</h3>
+              <p className="text-lg font-bold text-indigo-600">{totalCategories}</p>
             </Link>
 
             <Link href="/customers" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-blue-300">
@@ -178,8 +194,8 @@ export default function DashboardPage() {
                 <Users className="w-8 h-8 text-blue-600" />
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Total Customers</h3>
-              <p className="text-2xl font-bold text-blue-600">{uniqueCustomers}</p>
+              <h3 className="font-medium text-gray-800 mb-1 text-sm">Total Customers</h3>
+              <p className="text-lg font-bold text-blue-600">{uniqueCustomers}</p>
             </Link>
 
             <Link href="/returns" className="group bg-white rounded-xl shadow-md hover:shadow-lg transition-all p-4 border border-gray-100 hover:border-orange-300">
@@ -187,8 +203,8 @@ export default function DashboardPage() {
                 <PackageX className="w-8 h-8 text-orange-600" />
                 <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">Order Returns</h3>
-              <p className="text-2xl font-bold text-orange-600">View All</p>
+              <h3 className="font-medium text-gray-800 mb-1 text-sm">Order Returns</h3>
+              <p className="text-lg font-bold text-orange-600">View All</p>
             </Link>
           </div>
         </div>

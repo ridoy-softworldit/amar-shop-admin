@@ -312,16 +312,16 @@ export default function CategoriesPage() {
               ))}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((cat) => {
                 const subs = getSubcategoriesForCategory(cat._id);
                 const isExpanded = expandedCategories.has(cat._id);
                 const firstImage = cat.images?.[0];
 
                 return (
-                  <div key={cat._id} className="bg-white rounded-2xl border border-pink-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-                    <div className="p-4 sm:p-6">
-                      <div className="flex flex-col gap-4">
+                  <div key={cat._id} className="bg-white rounded-2xl border border-pink-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full">
+                    <div className="p-4 sm:p-6 flex flex-col flex-1">
+                      <div className="flex flex-col gap-4 flex-1">
                         <div className="flex items-start gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -335,10 +335,20 @@ export default function CategoriesPage() {
                           </div>
                           {cat.images && cat.images.length > 0 && (
                             <div className="flex gap-1.5 flex-shrink-0">
-                              {cat.images.slice(0, 2).map((img, idx) => (
+                              {cat.images.map((img, idx) => (
                                 <div key={idx} className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 border-pink-200">
-                                  {isValidImageUrl(img) ? (
-                                    <Image src={img} alt={`${cat.name} ${idx + 1}`} fill className="object-cover" sizes="64px" />
+                                  {img && img.trim() !== "" ? (
+                                    <Image 
+                                      src={img} 
+                                      alt={`${cat.name} ${idx + 1}`} 
+                                      fill 
+                                      className="object-cover" 
+                                      sizes="64px"
+                                      onError={(e) => {
+                                        console.log('Image load error:', img);
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-pink-50">
                                       <ImageIcon className="w-4 h-4 sm:w-6 sm:h-6 text-pink-300" />
@@ -350,7 +360,7 @@ export default function CategoriesPage() {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-2 mt-auto">
                           <button 
                             onClick={() => openCategoryModal(cat)} 
                             className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition font-medium text-xs sm:text-sm"
@@ -410,10 +420,20 @@ export default function CategoriesPage() {
                                     </div>
                                     {sub.images && sub.images.length > 0 && (
                                       <div className="flex gap-1.5 flex-shrink-0">
-                                        {sub.images.slice(0, 2).map((img, idx) => (
+                                        {sub.images.map((img, idx) => (
                                           <div key={idx} className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden border-2 border-cyan-200">
-                                            {isValidImageUrl(img) ? (
-                                              <Image src={img} alt={`${sub.name} ${idx + 1}`} fill className="object-cover" sizes="48px" />
+                                            {img && img.trim() !== "" ? (
+                                              <Image 
+                                                src={img} 
+                                                alt={`${sub.name} ${idx + 1}`} 
+                                                fill 
+                                                className="object-cover" 
+                                                sizes="48px"
+                                                onError={(e) => {
+                                                  console.log('Subcategory image load error:', img);
+                                                  e.currentTarget.style.display = 'none';
+                                                }}
+                                              />
                                             ) : (
                                               <div className="w-full h-full flex items-center justify-center bg-cyan-50">
                                                 <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-300" />

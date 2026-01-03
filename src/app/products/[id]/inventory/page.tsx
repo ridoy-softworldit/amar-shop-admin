@@ -7,6 +7,7 @@ import { toast, Toaster } from "react-hot-toast";
 import { useGetStockHistoryQuery, useAddStockMutation, useRemoveStockMutation } from "@/services/inventory.api";
 import { useListProductsQuery } from "@/services/products.api";
 import type { AddStockRequest, RemoveStockRequest } from "@/types/inventory";
+import Link from "next/link";
 
 export default function InventoryPage() {
   const params = useParams();
@@ -29,14 +30,14 @@ export default function InventoryPage() {
     <>
       <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <button
-            onClick={() => router.push("/products")}
-            className="inline-flex items-center gap-2 px-3 py-2 mb-4 text-gray-700 hover:text-[#167389] transition font-medium"
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 mt-16">
+          <Link
+            href="/products"
+            className="inline-flex border border-teal-800 rounded-lg p-1 items-center gap-2 px-3 py-2 mb-4 text-gray-700 hover:text-[#167389] transition font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Products
-          </button>
+          </Link>
 
           <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389] to-[#167389] mb-1 flex items-center gap-2">

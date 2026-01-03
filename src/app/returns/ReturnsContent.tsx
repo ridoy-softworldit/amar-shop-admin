@@ -233,7 +233,7 @@ export default function ReturnsContent() {
       <Toaster position="top-right" />
 
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 mt-16">
           <div className="mb-6 sm:mb-8">
             <button
               onClick={() => router.push("/dashboard")}

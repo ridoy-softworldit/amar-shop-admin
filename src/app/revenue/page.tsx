@@ -96,13 +96,13 @@ export default function RevenuePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 mt-16">
         <div className="mb-6 sm:mb-8">
-          <Link href="/dashboard" className="inline-flex items-center gap-2 text-gray-600 hover:text-[#167389] mb-4 transition-colors">
+          <Link href="/dashboard" className="inline-flex items-center border border-teal-800 rounded-lg p-1 gap-2 text-gray-600 hover:text-[#167389] mb-4 transition-colors">
             <ArrowLeft className="w-5 h-5" />
             <span className="font-semibold">Back to Dashboard</span>
           </Link>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389] to-[#167389] mb-2">
+          <h1 className="text-2xl sm:text-3xl  lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#167389] to-[#167389] mb-2">
             Revenue Overview
           </h1>
           <p className="text-sm sm:text-base text-gray-600">

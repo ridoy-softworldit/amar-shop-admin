@@ -13,6 +13,7 @@ import {
   Loader2,
   Image as ImageIcon,
   ArrowLeft,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { toast, Toaster } from "react-hot-toast";
@@ -109,7 +110,11 @@ export default function SubcategoriesPage() {
   );
 
   const subcategories = useMemo<Subcategory[]>(
-    () => ((data as any)?.data ?? []) as Subcategory[],
+    () => {
+      const subs = ((data as any)?.data ?? []) as Subcategory[];
+      console.log('Subcategories data:', subs);
+      return subs;
+    },
     [data]
   );
 
@@ -122,9 +127,12 @@ export default function SubcategoriesPage() {
     });
   }, [subcategories, searchQuery]);
 
-  const getCategoryName = (categoryId: string) => {
+  const getCategoryName = (categoryId: string | { _id: string; name: string; slug: string }) => {
+    if (typeof categoryId === 'object' && categoryId?.name) {
+      return categoryId.name;
+    }
     const cat = categories.find((c) => c._id === categoryId);
-    return cat?.name || cat?.title || "Unknown";
+    return cat?.name || cat?.title || "Unknown Category";
   };
 
   const openModal = (sub?: Subcategory) => {
@@ -232,16 +240,16 @@ export default function SubcategoriesPage() {
     <>
       <Toaster position="top-right" />
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8 text-center sm:text-left">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-16">
+          <div className="mb-8 sm:text-left">
             <button
               onClick={() => router.push("/dashboard")}
-              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-pink-200 text-gray-700 hover:bg-pink-50 transition"
+              className="mb-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-teal-800 p-1 text-gray-700 hover:bg-pink-50 transition"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to Dashboard</span>
             </button>
-            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-600 flex justify-center sm:justify-start items-center gap-3 flex-wrap">
+            <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-cyan-600 flex sm:justify-start items-center gap-3">
               <FolderTree className="w-8 sm:w-10 h-8 sm:h-10 text-pink-500" />
               Subcategory Management
             </h1>
@@ -334,7 +342,7 @@ export default function SubcategoriesPage() {
                         {sub.name}
                       </h3>
                       <p className="text-xs text-pink-600 font-medium mb-2">
-                        {getCategoryName(sub.categoryId)}
+                        Parent Category: {getCategoryName(sub.categoryId)}
                       </p>
                       <p className="text-sm text-gray-600 mb-3 line-clamp-2">
                         {sub.description}
@@ -386,15 +394,24 @@ export default function SubcategoriesPage() {
       />
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-white rounded-3xl border border-pink-100 shadow-2xl overflow-hidden">
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <h2 className="text-xl font-semibold text-pink-600 mb-2">
-                {editing ? "Edit Subcategory" : "Add New Subcategory"}
-              </h2>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[70] flex items-center justify-center p-3 sm:p-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl border border-pink-100 shadow-2xl overflow-hidden max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg sm:text-xl font-semibold text-pink-600">
+                  {editing ? "Edit Subcategory" : "Add New Subcategory"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition"
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
+                </button>
+              </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                   Parent Category *
                 </label>
                 <select
@@ -402,7 +419,7 @@ export default function SubcategoriesPage() {
                   onChange={(e) =>
                     setFormData((s) => ({ ...s, categoryId: e.target.value }))
                   }
-                  className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
                   required
                 >
                   <option value="">Select Category</option>
@@ -414,21 +431,21 @@ export default function SubcategoriesPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     Name *
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                     Slug *
                   </label>
                   <input
@@ -437,21 +454,21 @@ export default function SubcategoriesPage() {
                     onChange={(e) =>
                       setFormData((s) => ({ ...s, slug: e.target.value }))
                     }
-                    className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition font-mono"
                     required
                   />
                 </div>
               </div>
 
               <UploadBannerImages
-                label="Banner Images (Max 3)"
+                label="Max 3 Subcategory Images -(16:9 ratio) 1280px*720px"
                 value={bannerImages}
                 onChange={setBannerImages}
                 disabled={creating || updating}
               />
 
               <div>
-                <label className="text-sm font-medium text-gray-700">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
                   Description
                 </label>
                 <textarea
@@ -459,7 +476,7 @@ export default function SubcategoriesPage() {
                   onChange={(e) =>
                     setFormData((s) => ({ ...s, description: e.target.value }))
                   }
-                  className="w-full px-4 py-2 rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition resize-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg border-2 border-pink-100 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition resize-none"
                   rows={3}
                   placeholder="Short description..."
                 />
@@ -477,24 +494,24 @@ export default function SubcategoriesPage() {
                 />
                 <label
                   htmlFor="active"
-                  className="text-sm font-medium text-gray-700"
+                  className="text-xs sm:text-sm font-medium text-gray-700"
                 >
                   Active
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2 sm:pt-3">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition"
+                  className="px-4 sm:px-5 py-2.5 text-sm sm:text-base rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating || updating}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white hover:from-cyan-300 hover:to-cyan-700 font-semibold shadow hover:shadow-lg transition disabled:opacity-50"
+                  className="px-5 sm:px-6 py-2.5 text-sm sm:text-base rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white hover:from-cyan-300 hover:to-cyan-700 font-semibold shadow hover:shadow-lg transition disabled:opacity-50"
                 >
                   {editing
                     ? updating
